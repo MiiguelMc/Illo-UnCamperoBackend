@@ -13,7 +13,6 @@ public class FirebaseConfig {
 
     @PostConstruct
     public void init() throws IOException {
-        // CAMBIA "nombre-de-tu-archivo.json" por el nombre real que tiene en resources
         FileInputStream serviceAccount = new FileInputStream("src/main/resources/serviceAccountKey.json");
 
         FirebaseOptions options = FirebaseOptions.builder()

@@ -2,15 +2,15 @@ package com.illouncampero.Backend.model;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 
-@Data // Esto es lo que genera el setId y getId
-@NoArgsConstructor // Necesario para que Firebase pueda crear el objeto
-@AllArgsConstructor
+@Data
+@NoArgsConstructor
 public class Producto {
     private String id;
     private String nombre;
     private String descripcion;
     private Double precio;
     private String imagenUrl;
+    private String categoria; // "camperos", "bebidas", "entrantes"
+    private boolean disponible;
 }

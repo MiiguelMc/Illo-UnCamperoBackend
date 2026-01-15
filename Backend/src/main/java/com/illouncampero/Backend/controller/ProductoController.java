@@ -2,13 +2,12 @@ package com.illouncampero.Backend.controller;
 
 import com.illouncampero.Backend.model.Producto;
 import com.illouncampero.Backend.service.FirebaseService;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/productos") // Esta será la URL: localhost:8080/api/productos
+@RequestMapping("/api/productos")
+@CrossOrigin(origins = "*") // Permite que Angular y el móvil se conecten sin bloqueos
 public class ProductoController {
 
     private final FirebaseService firebaseService;
@@ -18,7 +17,17 @@ public class ProductoController {
     }
 
     @GetMapping
-    public List<Producto> listarProductos() throws Exception {
+    public List<Producto> listar() throws Exception {
         return firebaseService.getProductos();
+    }
+
+    @PostMapping
+    public String guardar(@RequestBody Producto producto) throws Exception {
+        return firebaseService.saveProducto(producto);
+    }
+
+    @DeleteMapping("/{id}")
+    public String borrar(@PathVariable String id) {
+        return firebaseService.deleteProducto(id);
     }
 }
