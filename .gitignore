@@ -1,0 +1,28 @@
+# --- JAVA & MAVEN ---
+target/
+!.mvn/wrapper/maven-wrapper.jar
+*.class
+*.jar
+*.war
+*.ear
+
+# --- SECRETS (VITAL PARA TU TFG) ---
+# Aquí ocultamos la llave maestra de Firebase
+serviceAccountKey.json
+src/main/resources/serviceAccountKey.json
+ServiceAccountKey.json
+ServiceAccountKey.json
+**/ServiceAccountKey.json
+# --- IDEs ---
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+bin/
+
+# --- LOGS & TEMP ---
+*.log
+.logs/
+temp/
