@@ -3,24 +3,39 @@ package com.illouncampero.Backend.config;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
-import org.springframework.context.annotation.Configuration;
 import jakarta.annotation.PostConstruct;
-import java.io.FileInputStream;
-import java.io.IOException;
+import org.springframework.context.annotation.Configuration;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 @Configuration
 public class FirebaseConfig {
 
     @PostConstruct
-    public void init() throws IOException {
-        FileInputStream serviceAccount = new FileInputStream("src/main/resources/serviceAccountKey.json");
+    public void init() {
+        try {
+            // Leemos la variable de entorno que pusimos en Render
+            String firebaseConfig = System.getenv("FIREBASE_JSON");
 
-        FirebaseOptions options = FirebaseOptions.builder()
-                .setCredentials(GoogleCredentials.fromStream(serviceAccount))
-                .build();
+            if (firebaseConfig == null) {
+                System.err.println("ERROR: La variable FIREBASE_JSON no está configurada.");
+                return;
+            }
 
-        if (FirebaseApp.getApps().isEmpty()) {
-            FirebaseApp.initializeApp(options);
+            InputStream serviceAccount = new ByteArrayInputStream(firebaseConfig.getBytes(StandardCharsets.UTF_8));
+
+            FirebaseOptions options = FirebaseOptions.builder()
+                    .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+                    .build();
+
+            if (FirebaseApp.getApps().isEmpty()) {
+                FirebaseApp.initializeApp(options);
+                System.out.println("¡Firebase inicializado con éxito!");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }
