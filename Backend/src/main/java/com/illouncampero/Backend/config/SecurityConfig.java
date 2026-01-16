@@ -1,4 +1,4 @@
-package com.illouncampero.backend.config;
+package com.illouncampero.Backend.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

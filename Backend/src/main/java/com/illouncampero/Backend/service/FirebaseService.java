@@ -4,6 +4,7 @@ import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
 import com.illouncampero.Backend.model.Producto;
+import com.illouncampero.Backend.model.Usuarios;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.UUID;
@@ -39,5 +40,23 @@ public class FirebaseService {
         Firestore db = FirestoreClient.getFirestore();
         db.collection("productos").document(id).delete();
         return "Producto " + id + " eliminado con éxito";
+    }
+    public String saveUsuario(Usuarios usuario) throws Exception {
+        Firestore db = FirestoreClient.getFirestore();
+        // Usamos el UID de Firebase como ID del documento
+        ApiFuture<WriteResult> future = db.collection("usuarios")
+                .document(usuario.getUid())
+                .set(usuario);
+        return "Perfil de usuario creado/actualizado";
+    }
+
+    // Obtener perfil (Para saber si es ADMIN o CLIENTE)
+    public Usuarios getUsuario(String uid) throws Exception {
+        Firestore db = FirestoreClient.getFirestore();
+        DocumentSnapshot doc = db.collection("usuarios").document(uid).get().get();
+        if (doc.exists()) {
+            return doc.toObject(Usuarios.class);
+        }
+        return null;
     }
 }
