@@ -4,25 +4,22 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import jakarta.annotation.PostConstruct;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
 @Configuration
-@EnableWebSecurity
 public class FirebaseConfig {
 
-    @Bean
+    @PostConstruct // <--- ESTO ES LO QUE HACE QUE FUNCIONE SIN SER @BEAN
     public void init() {
         try {
             String firebaseConfig = System.getenv("FIREBASE_JSON");
 
-            if (firebaseConfig == null) {
-                System.err.println("ERROR: La variable FIREBASE_JSON no está configurada.");
+            if (firebaseConfig == null || firebaseConfig.isEmpty()) {
+                System.err.println("ERROR: La variable FIREBASE_JSON no está configurada en Render.");
                 return;
             }
 
@@ -34,10 +31,10 @@ public class FirebaseConfig {
 
             if (FirebaseApp.getApps().isEmpty()) {
                 FirebaseApp.initializeApp(options);
-                System.out.println("¡Firebase inicializado con éxito!");
+                System.out.println("¡Firebase inicializado con éxito! ✅");
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Error al inicializar Firebase: " + e.getMessage());
         }
     }
 }
