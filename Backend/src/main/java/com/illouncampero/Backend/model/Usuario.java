@@ -5,7 +5,7 @@ import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
-public class Usuarios {
+public class Usuario {
     private String uid; // Este debe ser el mismo UID que genera Firebase
     private String nombre;
     private String email;

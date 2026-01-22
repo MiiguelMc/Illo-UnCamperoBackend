@@ -4,19 +4,21 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import jakarta.annotation.PostConstruct;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
 @Configuration
+@EnableWebSecurity
 public class FirebaseConfig {
 
-    @PostConstruct
+    @Bean
     public void init() {
         try {
-            // Leemos la variable de entorno que pusimos en Render
             String firebaseConfig = System.getenv("FIREBASE_JSON");
 
             if (firebaseConfig == null) {

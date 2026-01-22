@@ -4,7 +4,7 @@ import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
 import com.illouncampero.Backend.model.Producto;
-import com.illouncampero.Backend.model.Usuarios;
+import com.illouncampero.Backend.model.Usuario;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.UUID;
@@ -28,11 +28,19 @@ public class FirebaseService {
     // GUARDAR O ACTUALIZAR PRODUCTO
     public String saveProducto(Producto producto) throws Exception {
         Firestore db = FirestoreClient.getFirestore();
+
+        // Si el ID llega vacío desde el móvil, le generamos uno
         if (producto.getId() == null || producto.getId().isEmpty()) {
             producto.setId(UUID.randomUUID().toString());
         }
-        ApiFuture<WriteResult> future = db.collection("productos").document(producto.getId()).set(producto);
-        return "Producto guardado a las: " + future.get().getUpdateTime();
+
+        // OJO AQUÍ: El .get() es obligatorio para esperar a que Firebase confirme
+        ApiFuture<WriteResult> future = db.collection("productos")
+                .document(producto.getId())
+                .set(producto);
+
+        // Esto bloquea la ejecución hasta que se guarda de verdad
+        return "Guardado correctamente en: " + future.get().getUpdateTime();
     }
 
     // BORRAR PRODUCTO
@@ -41,7 +49,7 @@ public class FirebaseService {
         db.collection("productos").document(id).delete();
         return "Producto " + id + " eliminado con éxito";
     }
-    public String saveUsuario(Usuarios usuario) throws Exception {
+    public String saveUsuario(Usuario usuario) throws Exception {
         Firestore db = FirestoreClient.getFirestore();
         // Usamos el UID de Firebase como ID del documento
         ApiFuture<WriteResult> future = db.collection("usuarios")
@@ -51,11 +59,11 @@ public class FirebaseService {
     }
 
     // Obtener perfil (Para saber si es ADMIN o CLIENTE)
-    public Usuarios getUsuario(String uid) throws Exception {
+    public Usuario getUsuario(String uid) throws Exception {
         Firestore db = FirestoreClient.getFirestore();
         DocumentSnapshot doc = db.collection("usuarios").document(uid).get().get();
         if (doc.exists()) {
-            return doc.toObject(Usuarios.class);
+            return doc.toObject(Usuario.class);
         }
         return null;
     }

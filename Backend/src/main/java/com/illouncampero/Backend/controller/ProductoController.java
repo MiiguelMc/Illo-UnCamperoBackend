@@ -1,33 +1,38 @@
 package com.illouncampero.Backend.controller;
 
 import com.illouncampero.Backend.model.Producto;
-import com.illouncampero.Backend.service.FirebaseService;
+import com.illouncampero.Backend.service.ProductoService; // 1. Importamos el nuevo servicio
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/productos")
-@CrossOrigin(origins = "*") // Permite que Angular y el móvil se conecten sin bloqueos
+@CrossOrigin(origins = "*")
 public class ProductoController {
 
-    private final FirebaseService firebaseService;
+    // 2. Cambiamos la variable al servicio específico de productos
+    private final ProductoService productoService;
 
-    public ProductoController(FirebaseService firebaseService) {
-        this.firebaseService = firebaseService;
+    public ProductoController(ProductoService productoService) {
+        this.productoService = productoService;
     }
 
     @GetMapping
     public List<Producto> listar() throws Exception {
-        return firebaseService.getProductos();
+        // 3. Llamamos al método del nuevo servicio
+        return productoService.obtenerTodos();
     }
 
     @PostMapping
     public String guardar(@RequestBody Producto producto) throws Exception {
-        return firebaseService.saveProducto(producto);
+        System.out.println("Recibido desde el móvil: " + producto.toString());
+        // 4. Llamamos al método guardar del nuevo servicio
+        return productoService.guardarProducto(producto);
     }
 
     @DeleteMapping("/{id}")
     public String borrar(@PathVariable String id) {
-        return firebaseService.deleteProducto(id);
+        // 5. Llamamos al método eliminar del nuevo servicio
+        return productoService.eliminarProducto(id);
     }
 }
