@@ -29,7 +29,7 @@ public class SecurityConfig {
                         // Cualquiera puede ver productos (Público)
                         .requestMatchers(HttpMethod.GET, "/api/productos/**").permitAll()
                         // El registro inicial es público
-                        .requestMatchers("/api/usuarios/registro").permitAll()
+                        .requestMatchers("/api/usuarios/**").permitAll()
                         // SOLO EL ADMIN puede subir, borrar o editar camperos
                         .requestMatchers(HttpMethod.POST, "/api/productos/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/productos/**").hasRole("ADMIN")
