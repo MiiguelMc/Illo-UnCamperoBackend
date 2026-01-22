@@ -9,13 +9,28 @@ import java.util.UUID;
 @Service
 public class PedidoService {
 
-    public String crearPedido(Pedido pedido) throws Exception {
+    /**
+     * Esta función recibe el pedido del móvil, le añade la información de seguridad
+     * (ID, fecha y estado inicial) y lo guarda en Firebase.
+     */
+    public String guardarNuevoPedido(Pedido pedido) throws Exception {
         Firestore db = FirestoreClient.getFirestore();
-        pedido.setId(UUID.randomUUID().toString());
+
+        // 1. Generamos un ID único para el pedido (formato UUID)
+        String idGenerado = UUID.randomUUID().toString();
+        pedido.setId(idGenerado);
+
+        // 2. IMPORTANTE: Forzamos el estado a PENDIENTE.
+        // No dejamos que el móvil decida el estado por seguridad.
         pedido.setEstado("PENDIENTE");
+
+        // 3. Registramos la fecha y hora exacta del servidor (en milisegundos)
         pedido.setFecha(System.currentTimeMillis());
 
-        db.collection("pedidos").document(pedido.getId()).set(pedido);
-        return pedido.getId();
+        // 4. Guardamos el objeto en la colección "pedidos" usando el ID generado
+        db.collection("pedidos").document(idGenerado).set(pedido);
+
+        // Devolvemos el ID por si el móvil quiere guardarlo para hacer seguimiento
+        return idGenerado;
     }
 }
