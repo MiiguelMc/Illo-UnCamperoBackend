@@ -4,7 +4,7 @@ import com.illouncampero.Backend.model.Usuario;
 import com.illouncampero.Backend.service.FirebaseService;
 import org.springframework.web.bind.annotation.*;
 
-public class UsuariosController {
+
     @RestController
     @RequestMapping("/api/usuarios")
     @CrossOrigin(origins = "*")
@@ -28,4 +28,4 @@ public class UsuariosController {
             return firebaseService.getUsuario(uid);
         }
     }
-}
+
