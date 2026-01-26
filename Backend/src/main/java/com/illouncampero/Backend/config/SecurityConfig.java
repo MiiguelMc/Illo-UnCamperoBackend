@@ -1,18 +1,26 @@
 package com.illouncampero.Backend.config;
 
+import com.google.cloud.firestore.Firestore;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpMethod; // <--- IMPORTANTE: Debe ser este import
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
+
 import java.util.List;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+    private final Firestore db;
+
+    public SecurityConfig(Firestore db) {
+        this.db = db;
+    }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -26,19 +34,23 @@ public class SecurityConfig {
                     return config;
                 }))
                 .authorizeHttpRequests(auth -> auth
-                        // Cualquiera puede ver productos (Público)
+                        // 1. Swagger y documentación siempre públicos
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+
+                        // 2. Productos: lectura pública, escritura solo ADMIN
                         .requestMatchers(HttpMethod.GET, "/api/productos/**").permitAll()
-                        // El registro inicial es público
-                        .requestMatchers("/api/usuarios/**").permitAll()
-                        // SOLO EL ADMIN puede subir, borrar o editar camperos
                         .requestMatchers(HttpMethod.POST, "/api/productos/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/productos/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/productos/**").hasRole("ADMIN")
-                        // El resto (hacer pedidos, etc.) requiere login
+
+                        // 3. Usuarios: registro público (puedes ajustar esto más adelante)
+                        .requestMatchers("/api/usuarios/**").permitAll()
+
+                        // 4. Todo lo demás (pedidos, etc.) requiere estar autenticado
                         .anyRequest().authenticated()
                 )
-                // Añadimos el filtro de Firebase antes del filtro de usuario normal
-                .addFilterBefore(new FirebaseFilter(), UsernamePasswordAuthenticationFilter.class);
+                // 5. Añadimos tu filtro inyectándole la base de datos
+                .addFilterBefore(new FirebaseFilter(db), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

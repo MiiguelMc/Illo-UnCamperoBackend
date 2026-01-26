@@ -2,35 +2,60 @@ package com.illouncampero.Backend.service;
 
 import com.google.cloud.firestore.Firestore;
 import com.google.firebase.cloud.FirestoreClient;
+import com.illouncampero.Backend.model.LineaPedido;
 import com.illouncampero.Backend.model.Pedido;
+import com.illouncampero.Backend.model.Producto;
 import org.springframework.stereotype.Service;
+
 import java.util.UUID;
 
 @Service
 public class PedidoService {
+    private final Firestore db; // 1. Declaras la variable arriba
+    private final ProductoService productoService;
 
-    /**
-     * Esta función recibe el pedido del móvil, le añade la información de seguridad
-     * (ID, fecha y estado inicial) y lo guarda en Firebase.
-     */
+    public PedidoService(Firestore db, ProductoService productoService) {
+        this.db = db;
+
+        this.productoService = productoService;
+    }
+
     public String guardarNuevoPedido(Pedido pedido) throws Exception {
-        Firestore db = FirestoreClient.getFirestore();
 
-        // 1. Generamos un ID único para el pedido (formato UUID)
-        String idGenerado = UUID.randomUUID().toString();
-        pedido.setId(idGenerado);
+        double totalCalculado = 0;
 
-        // 2. IMPORTANTE: Forzamos el estado a PENDIENTE.
-        // No dejamos que el móvil decida el estado por seguridad.
+        // 1. Validamos cada línea del pedido
+        if (pedido.getProductos() == null || pedido.getProductos().isEmpty()) {
+            throw new Exception("El pedido no tiene productos");
+        }
+
+        for (LineaPedido linea : pedido.getProductos()) {
+            // Buscamos el producto en la DB para tener el precio real y actualizado
+            Producto productoOriginal = productoService.obtenerPorId(linea.getProductoId());
+
+            if (productoOriginal != null) {
+                // Machacamos el nombre y el precio con lo que dice la DB (Seguridad)
+                linea.setNombre(productoOriginal.getNombre());
+                linea.setPrecioUnidad(productoOriginal.getPrecio());
+
+                // Sumamos al total: precio_db * cantidad_cliente
+                totalCalculado += productoOriginal.getPrecio() * linea.getCantidad();
+            } else {
+                throw new Exception("Producto no encontrado: " + linea.getProductoId());
+            }
+        }
+
+        // 2. Asignamos el total real calculado en el servidor
+        pedido.setTotal(totalCalculado);
+
+        // 3. Forzamos datos de seguridad
+        pedido.setId(UUID.randomUUID().toString());
         pedido.setEstado("PENDIENTE");
-
-        // 3. Registramos la fecha y hora exacta del servidor (en milisegundos)
         pedido.setFecha(System.currentTimeMillis());
 
-        // 4. Guardamos el objeto en la colección "pedidos" usando el ID generado
-        db.collection("pedidos").document(idGenerado).set(pedido);
+        // 4. Guardamos en Firestore
+        db.collection("pedidos").document(pedido.getId()).set(pedido);
 
-        // Devolvemos el ID por si el móvil quiere guardarlo para hacer seguimiento
-        return idGenerado;
+        return pedido.getId();
     }
 }

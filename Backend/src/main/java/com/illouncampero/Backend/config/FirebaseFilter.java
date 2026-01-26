@@ -4,7 +4,6 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseToken;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
-import com.google.firebase.cloud.FirestoreClient;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,6 +19,13 @@ import java.util.List;
 
 public class FirebaseFilter extends OncePerRequestFilter {
 
+    private final Firestore db; // 1. Añadimos la variable
+
+    // 2. Creamos el constructor para recibir la db desde SecurityConfig
+    public FirebaseFilter(Firestore db) {
+        this.db = db;
+    }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
@@ -29,20 +35,18 @@ public class FirebaseFilter extends OncePerRequestFilter {
         if (header != null && header.startsWith("Bearer ")) {
             String token = header.substring(7);
             try {
-                // 1. Validar el Token con Firebase
+                // Validar el Token con Firebase
                 FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(token);
                 String uid = decodedToken.getUid();
 
-                // 2. Buscar el ROL en la base de datos Firestore
-                Firestore db = FirestoreClient.getFirestore();
+                // 3. USAMOS la db inyectada (borramos la llamada a FirestoreClient)
                 DocumentSnapshot userDoc = db.collection("usuarios").document(uid).get().get();
 
-                String rol = "CLIENTE"; // Por defecto
+                String rol = "CLIENTE";
                 if (userDoc.exists() && userDoc.getString("rol") != null) {
                     rol = userDoc.getString("rol");
                 }
 
-                // 3. Informar a Spring del usuario y su rol
                 List<SimpleGrantedAuthority> authorities = Collections.singletonList(
                         new SimpleGrantedAuthority("ROLE_" + rol.toUpperCase())
                 );
@@ -53,7 +57,6 @@ public class FirebaseFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(auth);
 
             } catch (Exception e) {
-                // Si falla, el usuario no está autenticado
                 SecurityContextHolder.clearContext();
             }
         }
