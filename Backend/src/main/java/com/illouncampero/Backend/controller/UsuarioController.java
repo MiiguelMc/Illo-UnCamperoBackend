@@ -3,6 +3,7 @@ package com.illouncampero.Backend.controller;
 import com.illouncampero.Backend.model.Usuario;
 import com.illouncampero.Backend.service.UsuarioService; // Usamos el servicio específico
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -28,19 +29,23 @@ public class UsuarioController {
 
     // 2. ACTUALIZAR PERFIL (Lo que necesita tu compañero)
     @PutMapping("/actualizar")
-    public String actualizarPerfil(@RequestBody Usuario usuario) throws Exception {
-        // Obtenemos el UID del token de quien hace la llamada
+    public ResponseEntity<?> actualizarPerfil(@RequestBody Usuario usuario) throws Exception {
+        // 1. Obtenemos el UID del token
         String uidAutenticado = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
-        // Validamos: ¿El que intenta editar es el dueño de la cuenta?
+        // 2. Validamos el permiso
         if (!uidAutenticado.equals(usuario.getUid())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tienes permiso para modificar este perfil");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("{\"error\": \"No tienes permiso para modificar este perfil\"}");
         }
 
-        // Si es el dueño, guardamos los cambios (nombre, dirección, teléfono, etc.)
-        return usuarioService.guardarPerfil(usuario);
-    }
+        // 3. Guardamos los cambios
+        // Lo ideal es que guardarPerfil devuelva el objeto Usuario actualizado
+        usuarioService.guardarPerfil(usuario);
 
+        // 4. IMPORTANTE: Devolvemos el objeto usuario (JSON) y no un String suelto
+        return ResponseEntity.ok(usuario);
+    }
     // 3. OBTENER PERFIL
     @GetMapping("/{uid}")
     public Usuario obtenerPerfil(@PathVariable String uid) throws Exception {
