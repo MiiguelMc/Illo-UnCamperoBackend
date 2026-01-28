@@ -43,8 +43,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/productos/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/productos/**").hasRole("ADMIN")
 
-                        // 3. Usuarios: registro público (puedes ajustar esto más adelante)
-                        .requestMatchers("/api/usuarios/**").permitAll()
+                        // 3. Usuarios (Ajustado para seguridad del TFG):
+                        // El registro debe ser público para que nuevos clientes entren
+                        .requestMatchers(HttpMethod.POST, "/api/usuarios/registro").permitAll()
+                        // El resto (ver perfil o actualizar) requiere estar LOGUEADO
+                        .requestMatchers("/api/usuarios/**").authenticated()
 
                         // 4. Todo lo demás (pedidos, etc.) requiere estar autenticado
                         .anyRequest().authenticated()
