@@ -76,14 +76,19 @@ public class PedidoService {
     // 4. ACTUALIZAR ESTADO (Para el Administrador)
     // Permite pasar de PENDIENTE -> COCINANDO -> REPARTO -> ENTREGADO
     public String actualizarEstado(String idPedido, String nuevoEstado) throws Exception {
-        // Validamos que el estado sea uno de los permitidos
+        // 1. Definimos los estados permitidos para evitar errores
         List<String> estadosValidos = List.of("PENDIENTE", "COCINANDO", "REPARTO", "ENTREGADO", "CANCELADO");
-        if (!estadosValidos.contains(nuevoEstado.toUpperCase())) {
-            throw new Exception("Estado no válido");
+
+        String estadoMayus = nuevoEstado.toUpperCase();
+
+        if (!estadosValidos.contains(estadoMayus)) {
+            throw new Exception("El estado '" + nuevoEstado + "' no es válido. Usa: " + estadosValidos);
         }
 
-        db.collection("pedidos").document(idPedido).update("estado", nuevoEstado.toUpperCase());
-        return "Estado del pedido " + idPedido + " actualizado a " + nuevoEstado;
+        // 2. Actualizamos solo el campo 'estado' en el documento de Firestore
+        db.collection("pedidos").document(idPedido).update("estado", estadoMayus);
+
+        return "Pedido " + idPedido + " actualizado a " + estadoMayus;
     }
 
     // 5. OBTENER UN PEDIDO POR ID (Para ver detalles específicos)
