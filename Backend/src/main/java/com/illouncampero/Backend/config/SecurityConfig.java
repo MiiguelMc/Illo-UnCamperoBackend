@@ -49,6 +49,8 @@ public class SecurityConfig {
                         // El resto (ver perfil o actualizar) requiere estar LOGUEADO
                         .requestMatchers("/api/usuarios/**").authenticated()
 
+                        .requestMatchers("/api/pedidos/**").permitAll()
+                        .requestMatchers("/api/usuarios/**").permitAll()
                         // 4. Todo lo demás (pedidos, etc.) requiere estar autenticado
                         .anyRequest().authenticated()
                 )
