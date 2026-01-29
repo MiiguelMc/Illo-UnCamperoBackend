@@ -1,5 +1,0 @@
-target/
-ServiceAccountKey.json
-**/ServiceAccountKey.json
-.classpath
-.project
