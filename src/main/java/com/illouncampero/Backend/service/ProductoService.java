@@ -47,9 +47,10 @@ public class ProductoService {
         return "Producto guardado con éxito";
     }
 
-    public String eliminarProducto(String id) {
-        // Usamos directamente this.db
-        db.collection("productos").document(id).delete();
-        return "Producto eliminado";
+    public String eliminarProducto(String id) throws Exception { // Añade el throws Exception
+        // Añadimos .get() para que el código ESPERE a que Firebase confirme el borrado
+        db.collection("productos").document(id).delete().get();
+        System.out.println("Borrado confirmado en Firebase para el ID: " + id);
+        return "Producto eliminado con éxito";
     }
 }

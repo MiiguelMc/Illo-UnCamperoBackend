@@ -31,8 +31,7 @@ public class ProductoController {
     }
 
     @DeleteMapping("/{id}")
-    public String borrar(@PathVariable String id) {
-        // 5. Llamamos al método eliminar del nuevo servicio
+    public String borrar(@PathVariable String id) throws Exception { // Añade el throws Exception
         return productoService.eliminarProducto(id);
     }
 }
