@@ -50,7 +50,7 @@ public class ProductoService {
         if (producto.getId() == null || producto.getId().isEmpty()) {
             producto.setId(UUID.randomUUID().toString());
         }
-        db.collection("productos").document(producto.getId()).set(producto);
+        db.collection("productos").document(producto.getId()).set(producto).get();
         return "Producto guardado con éxito";
     }
 
