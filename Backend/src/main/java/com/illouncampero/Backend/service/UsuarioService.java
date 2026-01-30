@@ -7,24 +7,39 @@ import org.springframework.stereotype.Service;
 @Service
 public class UsuarioService {
 
-    private final Firestore db; // 1. Declaramos la variable de clase
+    private final Firestore db;
 
-    // 2. Inyectamos la conexión por el constructor
     public UsuarioService(Firestore db) {
         this.db = db;
     }
 
     public String guardarPerfil(Usuario usuario) throws Exception {
-        // 3. Usamos la 'db' de la clase (eliminamos la llamada a FirestoreClient)
-        db.collection("usuarios").document(usuario.getUid()).set(usuario);
-        return "Perfil actualizado";
+        // 1. Verificamos que el UID no sea nulo antes de tocar la BD
+        if (usuario.getUid() == null || usuario.getUid().isEmpty()) {
+            throw new Exception("El UID del usuario no puede estar vacío");
+        }
+
+        System.out.println("LOG: Intentando guardar en Firebase el perfil del UID: " + usuario.getUid());
+
+        // 2. IMPORTANTE: Añadimos .get() al final para esperar a Firebase.
+        // 3. RECOMENDADO: Usamos SetOptions.merge() para que si el móvil no envía algún campo
+        // (como el rol o la contraseña), Firebase NO los borre de la base de datos.
+        db.collection("usuarios")
+                .document(usuario.getUid())
+                .set(usuario, SetOptions.merge()) // El merge protege tus datos existentes
+                .get(); // <--- LA LLAVE MAESTRA QUE TE FALTABA
+
+        return "Perfil actualizado con éxito";
     }
 
     public Usuario obtenerPorUid(String uid) throws Exception {
-        // 4. Usamos la 'db' de la clase
+        // El .get().get() aquí ya lo tenías bien puesto
         DocumentSnapshot doc = db.collection("usuarios").document(uid).get().get();
         if (doc.exists()) {
-            return doc.toObject(Usuario.class);
+            Usuario u = doc.toObject(Usuario.class);
+            // Nos aseguramos de que el objeto lleva su UID
+            if (u != null) u.setUid(doc.getId());
+            return u;
         }
         return null;
     }

@@ -4,6 +4,7 @@ import com.illouncampero.Backend.model.Usuario;
 import com.illouncampero.Backend.service.UsuarioService; // Usamos el servicio específico
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -27,23 +28,23 @@ public class UsuarioController {
         return usuarioService.guardarPerfil(usuario);
     }
 
-    // 2. ACTUALIZAR PERFIL (Lo que necesita tu compañero)
-    @PutMapping("/actualizar")
-    public ResponseEntity<?> actualizarPerfil(@RequestBody Usuario usuario) throws Exception {
-        // 1. Obtenemos el UID del token
-        String uidAutenticado = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    // 1. Cambiamos la ruta a "/perfil" para que coincida con el móvil
+    @PutMapping("/perfil")
+    public ResponseEntity<?> actualizarPerfil(@RequestBody Usuario usuario, Authentication authentication) throws Exception {
 
-        // 2. Validamos el permiso
-        if (!uidAutenticado.equals(usuario.getUid())) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body("{\"error\": \"No tienes permiso para modificar este perfil\"}");
-        }
+        // 2. Sacamos el UID directamente del Token (esto es lo más seguro)
+        // Dependiendo de tu filtro, puede ser authentication.getName() o el Principal
+        String uidAutenticado = authentication.getName();
 
-        // 3. Guardamos los cambios
-        // Lo ideal es que guardarPerfil devuelva el objeto Usuario actualizado
+        System.out.println("LOG: El usuario " + uidAutenticado + " quiere actualizar su perfil.");
+
+        // 3. Le asignamos al objeto usuario el UID que viene del token
+        // Así nos aseguramos de que actualiza SU documento y no el de otro
+        usuario.setUid(uidAutenticado);
+
+        // 4. Guardamos (Asegúrate de que guardarPerfil tenga el .get() dentro del Service)
         usuarioService.guardarPerfil(usuario);
 
-        // 4. IMPORTANTE: Devolvemos el objeto usuario (JSON) y no un String suelto
         return ResponseEntity.ok(usuario);
     }
     // 3. OBTENER PERFIL
