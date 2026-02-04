@@ -8,4 +8,5 @@ public class LineaPedido {
     private String nombre;
     private int cantidad;
     private double precioUnidad;
+    private String notas;
 }

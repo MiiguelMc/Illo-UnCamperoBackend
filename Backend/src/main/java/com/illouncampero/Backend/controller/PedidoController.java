@@ -51,4 +51,9 @@ public class PedidoController {
     public Pedido obtenerDetalles(@PathVariable String id) throws Exception {
         return pedidoService.obtenerPorId(id);
     }
+
+    @GetMapping("/estadisticas/hoy")
+    public java.util.Map<String, Object> verVentasHoy() throws Exception {
+        return pedidoService.obtenerVentasHoy();
+    }
 }

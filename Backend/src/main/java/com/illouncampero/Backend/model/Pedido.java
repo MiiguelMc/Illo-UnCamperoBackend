@@ -14,4 +14,5 @@ public class Pedido {
     private double total;            // Suma de todo
     private String estado;           // "PENDIENTE", "COCINANDO", "REPARTO", "ENTREGADO"
     private long fecha;              // Momento exacto del pedido (Timestamp)
+    private String notasGenerales;
 }

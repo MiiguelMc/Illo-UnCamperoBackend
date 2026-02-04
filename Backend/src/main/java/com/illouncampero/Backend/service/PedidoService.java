@@ -95,4 +95,40 @@ public class PedidoService {
     public Pedido obtenerPorId(String id) throws Exception {
         return db.collection("pedidos").document(id).get().get().toObject(Pedido.class);
     }
+
+    public java.util.Map<String, Object> obtenerVentasHoy() throws Exception {
+        // 1. Calculamos el timestamp de cuando empezó el día de hoy (hora 00:00:00)
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+        cal.set(java.util.Calendar.MINUTE, 0);
+        cal.set(java.util.Calendar.SECOND, 0);
+        cal.set(java.util.Calendar.MILLISECOND, 0);
+        long comienzoDelDia = cal.getTimeInMillis();
+
+        // 2. Pedimos a Firebase los pedidos que se han hecho desde que empezó el día
+        List<Pedido> pedidosDeHoy = db.collection("pedidos")
+                .whereGreaterThanOrEqualTo("fecha", comienzoDelDia)
+                .get().get().getDocuments()
+                .stream()
+                .map(doc -> doc.toObject(Pedido.class))
+                .collect(Collectors.toList());
+
+        // 3. Sumamos los totales
+        double dineroTotal = 0;
+        for (Pedido p : pedidosDeHoy) {
+            // Solo sumamos los que no estén cancelados
+            if (!p.getEstado().equals("CANCELADO")) {
+                dineroTotal += p.getTotal();
+            }
+        }
+
+        // 4. Guardamos los datos en un "Mapa" para enviarlos juntos
+        java.util.Map<String, Object> estadisticas = new java.util.HashMap<>();
+        estadisticas.put("totalDinero", dineroTotal);
+        estadisticas.put("totalPedidos", pedidosDeHoy.size());
+
+        System.out.println("LOG: Ventas de hoy calculadas. Total: " + dineroTotal + "€");
+
+        return estadisticas;
+    }
 }

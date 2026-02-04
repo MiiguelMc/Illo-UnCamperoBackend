@@ -3,6 +3,7 @@ package com.illouncampero.Backend.controller;
 
 import com.illouncampero.Backend.model.Producto;
 import com.illouncampero.Backend.service.ProductoService; // 1. Importamos el nuevo servicio
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
@@ -31,7 +32,7 @@ public class ProductoController {
 
 
     @PostMapping
-    public String guardar(@RequestBody Producto producto) throws Exception {
+    public String guardar(@Valid @RequestBody Producto producto) throws Exception {
         System.out.println("Recibido desde el móvil: " + producto.toString());
         // 4. Llamamos al método guardar del nuevo servicio
         return productoService.guardarProducto(producto);
