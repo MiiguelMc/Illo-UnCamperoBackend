@@ -38,6 +38,7 @@ public class FirebaseFilter extends OncePerRequestFilter {
                 // Validar el Token con Firebase
                 FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(token);
                 String uid = decodedToken.getUid();
+                System.out.println("DEBUG FILTER: Token de Firebase válido. UID: " + uid);
 
                 // 3. USAMOS la db inyectada (borramos la llamada a FirestoreClient)
                 DocumentSnapshot userDoc = db.collection("usuarios").document(uid).get().get();
@@ -45,6 +46,9 @@ public class FirebaseFilter extends OncePerRequestFilter {
                 String rol = "CLIENTE";
                 if (userDoc.exists() && userDoc.getString("rol") != null) {
                     rol = userDoc.getString("rol");
+                } else {
+                    // SI SALE ESTE LOG, EL PROBLEMA ES QUE EL DOCUMENTO EN FIRESTORE NO SE LLAMA COMO EL UID
+                    System.out.println("DEBUG FILTER: ERROR - No existe el documento '" + uid + "' en la colección 'usuarios'");
                 }
 
                 List<SimpleGrantedAuthority> authorities = Collections.singletonList(
@@ -57,6 +61,7 @@ public class FirebaseFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(auth);
 
             } catch (Exception e) {
+                System.out.println("DEBUG FILTER: Error validando token: " + e.getMessage());
                 SecurityContextHolder.clearContext();
             }
         }

@@ -46,9 +46,9 @@ public class SecurityConfig {
 
                         // 2. Productos: lectura pública, escritura solo ADMIN
                         .requestMatchers(HttpMethod.GET, "/api/productos/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/productos/**").hasAuthority("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/productos/**").hasAuthority("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/productos/**").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/productos/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/productos/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/productos/**").hasRole("ADMIN")
 
 
                         // 3. Usuarios (Ajustado para seguridad del TFG):
