@@ -24,5 +24,8 @@ public class Producto {
 
     private String categoria; // "camperos", "bebidas", "entrantes"
 
+    @NotBlank(message = "La subcategoría es obligatoria")
+    private String subcategoria;
+    
     private boolean disponible;
 }
