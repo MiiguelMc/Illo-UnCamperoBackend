@@ -2,6 +2,7 @@ package com.illouncampero.Backend.controller;
 
 import com.illouncampero.Backend.model.Pedido;
 import com.illouncampero.Backend.service.PedidoService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -42,9 +43,10 @@ public class PedidoController {
     // Se usa desde: Web Angular (Botones para avanzar el pedido)
     // Ejemplo: PATCH /api/pedidos/ID/estado?nuevoEstado=COCINANDO
     @PatchMapping("/{id}/estado")
-    public String cambiarEstado(@PathVariable String id, @RequestParam String nuevoEstado) throws Exception {
-        return pedidoService.actualizarEstado(id, nuevoEstado);
-    }
+    public ResponseEntity<Void> cambiarEstado(@PathVariable String id, @RequestParam String nuevoEstado) throws Exception {
+        pedidoService.actualizarEstado(id, nuevoEstado);
+        return ResponseEntity.ok().build(); // Devuelve un 200 OK vacío
+    }}
 
     // 5. VER DETALLES DE UN PEDIDO
     @GetMapping("/{id}")
