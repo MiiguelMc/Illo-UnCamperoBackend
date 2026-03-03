@@ -15,13 +15,15 @@ public class PedidoService {
 
     private final Firestore db;
     private final ProductoService productoService;
+    private final NotificacionService notificacionService; // ← AÑADIDO
 
-    public PedidoService(Firestore db, ProductoService productoService) {
+    public PedidoService(Firestore db, ProductoService productoService, NotificacionService notificationService) {
         this.db = db;
         this.productoService = productoService;
+        this.notificacionService = notificationService; // ← AÑADIDO
     }
 
-    // 1. REALIZAR PEDIDO (Tu código original mejorado)
+    // 1. REALIZAR PEDIDO
     public String guardarNuevoPedido(Pedido pedido) throws Exception {
         double totalCalculado = 0;
 
@@ -51,8 +53,7 @@ public class PedidoService {
         return pedido.getId();
     }
 
-    // 2. OBTENER HISTORIAL DE UN USUARIO (Para la App Móvil)
-    // Esto permite que el cliente vea sus pedidos antiguos
+    // 2. OBTENER HISTORIAL DE UN USUARIO
     public List<Pedido> obtenerPedidosPorUsuario(String uid) throws Exception {
         return db.collection("pedidos")
                 .whereEqualTo("idUsuario", uid)
@@ -62,8 +63,7 @@ public class PedidoService {
                 .collect(Collectors.toList());
     }
 
-    // 3. OBTENER PEDIDOS ACTIVOS (Para la Web del Restaurante / Cocina)
-    // Solo devuelve los pedidos que no han sido entregados ni cancelados
+    // 3. OBTENER PEDIDOS ACTIVOS
     public List<Pedido> obtenerPedidosActivos() throws Exception {
         return db.collection("pedidos")
                 .whereIn("estado", List.of("PENDIENTE", "COCINANDO", "REPARTO"))
@@ -73,31 +73,72 @@ public class PedidoService {
                 .collect(Collectors.toList());
     }
 
-    // 4. ACTUALIZAR ESTADO (Para el Administrador)
-    // Permite pasar de PENDIENTE -> COCINANDO -> REPARTO -> ENTREGADO
+    // 4. ACTUALIZAR ESTADO ← MODIFICADO: ahora envía notificación al cliente
     public String actualizarEstado(String idPedido, String nuevoEstado) throws Exception {
-        // 1. Definimos los estados permitidos para evitar errores
         List<String> estadosValidos = List.of("PENDIENTE", "COCINANDO", "REPARTO", "ENTREGADO", "CANCELADO");
-
         String estadoMayus = nuevoEstado.toUpperCase();
 
         if (!estadosValidos.contains(estadoMayus)) {
             throw new Exception("El estado '" + nuevoEstado + "' no es válido. Usa: " + estadosValidos);
         }
 
-        // 2. Actualizamos solo el campo 'estado' en el documento de Firestore
+        // Actualizamos el estado en Firestore
         db.collection("pedidos").document(idPedido).update("estado", estadoMayus);
+
+        // Obtenemos el pedido para saber a qué usuario notificar
+        Pedido pedido = obtenerPorId(idPedido);
+
+        if (pedido != null && pedido.getIdUsuario() != null) {
+            // Buscamos el fcmToken del usuario en su documento de Firestore
+            var usuarioDoc = db.collection("usuarios").document(pedido.getIdUsuario()).get().get();
+
+            if (usuarioDoc.exists()) {
+                String fcmToken = usuarioDoc.getString("fcmToken");
+
+                if (fcmToken != null && !fcmToken.isEmpty()) {
+                    // Construimos el mensaje según el nuevo estado
+                    String titulo = obtenerTituloNotificacion(estadoMayus);
+                    String cuerpo  = obtenerCuerpoNotificacion(estadoMayus, idPedido);
+
+                    notificacionService.enviarNotificacion(fcmToken, titulo, cuerpo);
+                    System.out.println("LOG: Notificación enviada a usuario " + pedido.getIdUsuario());
+                } else {
+                    System.out.println("LOG: El usuario no tiene fcmToken registrado");
+                }
+            }
+        }
 
         return "Pedido " + idPedido + " actualizado a " + estadoMayus;
     }
 
-    // 5. OBTENER UN PEDIDO POR ID (Para ver detalles específicos)
+    // Mensajes de notificación por estado
+    private String obtenerTituloNotificacion(String estado) {
+        return switch (estado) {
+            case "COCINANDO"  -> "🍳 ¡Tu pedido está en cocina!";
+            case "REPARTO"    -> "🛵 ¡Tu pedido está en camino!";
+            case "ENTREGADO"  -> "✅ ¡Pedido entregado!";
+            case "CANCELADO"  -> "❌ Pedido cancelado";
+            default           -> "📦 Actualización de tu pedido";
+        };
+    }
+
+    private String obtenerCuerpoNotificacion(String estado, String idPedido) {
+        String idCorto = idPedido.substring(0, 8).toUpperCase();
+        return switch (estado) {
+            case "COCINANDO"  -> "El pedido #" + idCorto + " ya está siendo preparado. ¡Paciencia!";
+            case "REPARTO"    -> "El pedido #" + idCorto + " ha salido. Llegará pronto.";
+            case "ENTREGADO"  -> "El pedido #" + idCorto + " ha sido entregado. ¡Buen provecho!";
+            case "CANCELADO"  -> "El pedido #" + idCorto + " ha sido cancelado. Contacta con nosotros si tienes dudas.";
+            default           -> "Tu pedido #" + idCorto + " ha cambiado de estado a " + estado;
+        };
+    }
+
+    // 5. OBTENER UN PEDIDO POR ID
     public Pedido obtenerPorId(String id) throws Exception {
         return db.collection("pedidos").document(id).get().get().toObject(Pedido.class);
     }
 
     public java.util.Map<String, Object> obtenerVentasHoy() throws Exception {
-        // 1. Calculamos el timestamp de cuando empezó el día de hoy (hora 00:00:00)
         java.util.Calendar cal = java.util.Calendar.getInstance();
         cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
         cal.set(java.util.Calendar.MINUTE, 0);
@@ -105,7 +146,6 @@ public class PedidoService {
         cal.set(java.util.Calendar.MILLISECOND, 0);
         long comienzoDelDia = cal.getTimeInMillis();
 
-        // 2. Pedimos a Firebase los pedidos que se han hecho desde que empezó el día
         List<Pedido> pedidosDeHoy = db.collection("pedidos")
                 .whereGreaterThanOrEqualTo("fecha", comienzoDelDia)
                 .get().get().getDocuments()
@@ -113,16 +153,13 @@ public class PedidoService {
                 .map(doc -> doc.toObject(Pedido.class))
                 .collect(Collectors.toList());
 
-        // 3. Sumamos los totales
         double dineroTotal = 0;
         for (Pedido p : pedidosDeHoy) {
-            // Solo sumamos los que no estén cancelados
             if (!p.getEstado().equals("CANCELADO")) {
                 dineroTotal += p.getTotal();
             }
         }
 
-        // 4. Guardamos los datos en un "Mapa" para enviarlos juntos
         java.util.Map<String, Object> estadisticas = new java.util.HashMap<>();
         estadisticas.put("totalDinero", dineroTotal);
         estadisticas.put("totalPedidos", pedidosDeHoy.size());

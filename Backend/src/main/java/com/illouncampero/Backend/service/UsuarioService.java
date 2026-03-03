@@ -2,7 +2,13 @@ package com.illouncampero.Backend.service;
 
 import com.google.cloud.firestore.*;
 import com.illouncampero.Backend.model.Usuario;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+
+import java.util.Map;
 
 @Service
 public class UsuarioService {
@@ -43,4 +49,5 @@ public class UsuarioService {
         }
         return null;
     }
+
 }
