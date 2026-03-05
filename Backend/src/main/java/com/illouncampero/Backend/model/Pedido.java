@@ -5,14 +5,15 @@ import java.util.List;
 
 @Data
 public class Pedido {
-    private String id;               // ID único del pedido
-    private String idUsuario;        // Quién lo pide (UID de Firebase)
-    private String nombreCliente;    // Para que el repartidor sepa a quién llamar
-    private String direccion;        // Calle, número, etc.
-    private String telefono;         // Por si el repartidor se pierde
-    private List<LineaPedido> productos; // La lista de lo que ha comprado
-    private double total;            // Suma de todo
-    private String estado;           // "PENDIENTE", "COCINANDO", "REPARTO", "ENTREGADO"
-    private long fecha;              // Momento exacto del pedido (Timestamp)
+    private String id;
+    private String idUsuario;
+    private String nombreCliente;
+    private String direccion;
+    private String telefono;
+    private List<LineaPedido> productos;
+    private double total;
+    private String estado;       // "PENDIENTE", "COCINANDO", "REPARTO", "ENTREGADO", "CANCELADO"
+    private long fecha;          // Timestamp en milisegundos
     private String notasGenerales;
+    private String metodoPago;   // ✅ AÑADIDO: "EFECTIVO", "TARJETA", "TRANSFERENCIA"
 }
