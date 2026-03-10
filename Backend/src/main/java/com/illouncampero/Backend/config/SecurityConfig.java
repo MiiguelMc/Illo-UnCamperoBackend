@@ -44,18 +44,32 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.DELETE, "/api/productos/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/productos/**").hasRole("ADMIN")
 
-                // Registro: público para nuevos usuarios
+                // Registro: público
                 .requestMatchers(HttpMethod.POST, "/api/usuarios/registro").permitAll()
 
-                // ✅ PEDIDOS: autenticados (antes estaba mal ordenado)
-                .requestMatchers("/api/pedidos/**").authenticated()
+                // Tienda: GET público, PATCH solo ADMIN
+                .requestMatchers(HttpMethod.GET, "/api/tienda/estado").permitAll()
+                .requestMatchers(HttpMethod.PATCH, "/api/tienda/estado").hasRole("ADMIN")
 
-                // ✅ Panel de cocina activos y estadísticas: solo ADMIN o COCINA
+                // Reseñas: GET público, POST autenticado
+                .requestMatchers(HttpMethod.GET, "/api/resenas").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/resenas").authenticated()
+
+                // Cupones: validar autenticado, gestión solo ADMIN
+                .requestMatchers(HttpMethod.POST, "/api/cupones/validar").authenticated()
+                .requestMatchers(HttpMethod.POST, "/api/cupones").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/cupones").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PATCH, "/api/cupones/**").hasRole("ADMIN")
+
+                // Pedidos activos y estadísticas: ADMIN o COCINA
                 .requestMatchers(HttpMethod.GET, "/api/pedidos/activos").hasAnyRole("ADMIN", "COCINA")
                 .requestMatchers(HttpMethod.GET, "/api/pedidos/estadisticas/**").hasAnyRole("ADMIN", "COCINA")
                 .requestMatchers(HttpMethod.PATCH, "/api/pedidos/*/estado").hasAnyRole("ADMIN", "COCINA")
 
-                // El resto de usuarios autenticados
+                // Pedidos: autenticados
+                .requestMatchers("/api/pedidos/**").authenticated()
+
+                // Usuarios: autenticados
                 .requestMatchers("/api/usuarios/**").authenticated()
 
                 .anyRequest().authenticated()
