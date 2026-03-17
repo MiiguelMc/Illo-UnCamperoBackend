@@ -12,8 +12,8 @@ public class Pedido {
     private String telefono;
     private List<LineaPedido> productos;
     private double total;
-    private String estado;       // "PENDIENTE", "COCINANDO", "REPARTO", "ENTREGADO", "CANCELADO"
-    private long fecha;          // Timestamp en milisegundos
+    private String estado;
+    private long fecha;
     private String notasGenerales;
-    private String metodoPago;   // ✅ AÑADIDO: "EFECTIVO", "TARJETA", "TRANSFERENCIA"
+    private String metodoPago;   
 }

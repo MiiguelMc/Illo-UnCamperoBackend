@@ -34,44 +34,25 @@ public class SecurityConfig {
                 return config;
             }))
             .authorizeHttpRequests(auth -> auth
-
-                // Swagger
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-
-                // Productos: GET público, escritura solo ADMIN
                 .requestMatchers(HttpMethod.GET, "/api/productos/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/productos/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/productos/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/productos/**").hasRole("ADMIN")
-
-                // Registro: público
                 .requestMatchers(HttpMethod.POST, "/api/usuarios/registro").permitAll()
-
-                // Tienda: GET público, PATCH solo ADMIN
                 .requestMatchers(HttpMethod.GET, "/api/tienda/estado").permitAll()
                 .requestMatchers(HttpMethod.PATCH, "/api/tienda/estado").hasRole("ADMIN")
-
-                // Reseñas: GET público, POST autenticado
                 .requestMatchers(HttpMethod.GET, "/api/resenas").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/resenas").authenticated()
-
-                // Cupones: validar autenticado, gestión solo ADMIN
                 .requestMatchers(HttpMethod.POST, "/api/cupones/validar").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/cupones").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/cupones").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PATCH, "/api/cupones/**").hasRole("ADMIN")
-
-                // Pedidos activos y estadísticas: ADMIN o COCINA
                 .requestMatchers(HttpMethod.GET, "/api/pedidos/activos").hasAnyRole("ADMIN", "COCINA")
                 .requestMatchers(HttpMethod.GET, "/api/pedidos/estadisticas/**").hasAnyRole("ADMIN", "COCINA")
                 .requestMatchers(HttpMethod.PATCH, "/api/pedidos/*/estado").hasAnyRole("ADMIN", "COCINA")
-
-                // Pedidos: autenticados
                 .requestMatchers("/api/pedidos/**").authenticated()
-
-                // Usuarios: autenticados
                 .requestMatchers("/api/usuarios/**").authenticated()
-
                 .anyRequest().authenticated()
             )
             .addFilterBefore(new FirebaseFilter(db), UsernamePasswordAuthenticationFilter.class);

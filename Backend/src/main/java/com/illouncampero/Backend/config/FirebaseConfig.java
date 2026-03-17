@@ -35,7 +35,7 @@ public class FirebaseConfig {
                 .setCredentials(GoogleCredentials.fromStream(serviceAccount))
                 .build();
 
-        System.out.println("¡Firebase inicializado con éxito en Render! ✅");
+        System.out.println("Firebase inicializado correctamente.");
         return FirebaseApp.initializeApp(options);
     }
 

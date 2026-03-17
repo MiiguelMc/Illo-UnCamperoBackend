@@ -6,10 +6,10 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 public class Usuario {
-    private String uid; // Este debe ser el mismo UID que genera Firebase
+    private String uid;
     private String nombre;
     private String email;
     private String telefono;
     private String direccion;
-    private String rol; // "CLIENTE", "ADMIN", "REPARTIDOR"
+    private String rol;
 }

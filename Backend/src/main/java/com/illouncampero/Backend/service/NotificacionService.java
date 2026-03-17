@@ -8,13 +8,6 @@ import org.springframework.stereotype.Service;
 @Service
 public class NotificacionService {
 
-    /**
-     * Envía una notificación push a un dispositivo concreto mediante su fcmToken.
-     *
-     * @param fcmToken Token FCM del dispositivo destino (guardado en Firestore al hacer login)
-     * @param titulo   Título que aparece en la notificación
-     * @param cuerpo   Texto del cuerpo de la notificación
-     */
     public void enviarNotificacion(String fcmToken, String titulo, String cuerpo) {
         try {
             Message message = Message.builder()
@@ -27,13 +20,9 @@ public class NotificacionService {
                     )
                     .build();
 
-            String response = FirebaseMessaging.getInstance().send(message);
-            System.out.println("LOG: Notificación enviada correctamente. ID: " + response);
-
+            FirebaseMessaging.getInstance().send(message);
         } catch (Exception e) {
-            // No lanzamos la excepción para que un fallo en la notificación
-            // no revierta la actualización de estado del pedido
-            System.err.println("ERROR: Fallo al enviar notificación FCM: " + e.getMessage());
+            System.err.println("Error al enviar notificacion FCM: " + e.getMessage());
         }
     }
 }

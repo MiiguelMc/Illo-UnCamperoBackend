@@ -7,7 +7,7 @@ public class Resena {
     private String id;
     private String idPedido;
     private String idUsuario;
-    private int puntuacion;    // 1-5
+    private int puntuacion;
     private String comentario;
     private long fecha;
 }

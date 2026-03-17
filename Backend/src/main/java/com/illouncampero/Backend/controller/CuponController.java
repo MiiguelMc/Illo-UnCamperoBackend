@@ -23,7 +23,6 @@ public class CuponController {
         this.db = db;
     }
 
-    // Validar cupón - autenticado
     @PostMapping("/validar")
     public ResponseEntity<Map<String, Object>> validarCupon(@RequestBody Map<String, String> body)
             throws ExecutionException, InterruptedException {
@@ -33,7 +32,6 @@ public class CuponController {
             return ResponseEntity.badRequest().build();
         }
 
-        // Buscamos el cupón por código (campo "codigo" en Firestore)
         var docs = db.collection("cupones")
                 .whereEqualTo("codigo", codigo.toUpperCase().trim())
                 .whereEqualTo("activo", true)
@@ -49,14 +47,13 @@ public class CuponController {
         DocumentSnapshot doc = docs.get(0);
         Map<String, Object> respuesta = new HashMap<>();
         respuesta.put("valido", true);
-        respuesta.put("descuento", doc.getDouble("descuento")); // porcentaje, ej: 10.0
+        respuesta.put("descuento", doc.getDouble("descuento"));
         respuesta.put("descripcion", doc.getString("descripcion"));
         respuesta.put("codigo", doc.getString("codigo"));
 
         return ResponseEntity.ok(respuesta);
     }
 
-    // Crear cupón - solo ADMIN
     @PostMapping
     public ResponseEntity<String> crearCupon(@RequestBody Cupon cupon)
             throws ExecutionException, InterruptedException {
@@ -69,7 +66,6 @@ public class CuponController {
         }
 
         cupon.setCodigo(cupon.getCodigo().toUpperCase().trim());
-        cupon.setActivo(true);
 
         String id = UUID.randomUUID().toString();
         Map<String, Object> datos = new HashMap<>();
@@ -79,12 +75,9 @@ public class CuponController {
         datos.put("activo", true);
 
         db.collection("cupones").document(id).set(datos).get();
-        System.out.println("LOG: Cupón creado: " + cupon.getCodigo() + " (" + cupon.getDescuento() + "%)");
-
         return ResponseEntity.ok("Cupón '" + cupon.getCodigo() + "' creado con éxito.");
     }
 
-    // Desactivar cupón - solo ADMIN
     @PatchMapping("/{id}/desactivar")
     public ResponseEntity<String> desactivarCupon(@PathVariable String id)
             throws ExecutionException, InterruptedException {
@@ -97,7 +90,6 @@ public class CuponController {
         return ResponseEntity.ok("Cupón desactivado.");
     }
 
-    // Listar todos los cupones - solo ADMIN
     @GetMapping
     public ResponseEntity<?> listarCupones() throws ExecutionException, InterruptedException {
         var docs = db.collection("cupones").get().get().getDocuments();

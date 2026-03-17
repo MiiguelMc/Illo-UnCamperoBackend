@@ -22,7 +22,7 @@ public class Producto {
 
     private String imagenUrl;
 
-    private String categoria; // "camperos", "bebidas", "entrantes"
+    private String categoria;
 
     @NotBlank(message = "La subcategoría es obligatoria")
     private String subcategoria;
