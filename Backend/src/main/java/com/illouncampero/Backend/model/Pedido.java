@@ -15,5 +15,7 @@ public class Pedido {
     private String estado;
     private long fecha;
     private String notasGenerales;
-    private String metodoPago;   
+    private String metodoPago;
+    private String cupon;      // Para guardar "LOLO"
+    private Double descuento;
 }

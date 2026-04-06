@@ -31,23 +31,31 @@ public class PedidoService {
             throw new Exception("El pedido no tiene productos");
         }
 
-        double totalCalculado = 0;
+        double subtotalCalculado = 0;
         for (LineaPedido linea : pedido.getProductos()) {
             Producto productoOriginal = productoService.obtenerPorId(linea.getProductoId());
             if (productoOriginal != null) {
                 linea.setNombre(productoOriginal.getNombre());
                 linea.setPrecioUnidad(productoOriginal.getPrecio());
-                totalCalculado += productoOriginal.getPrecio() * linea.getCantidad();
+                subtotalCalculado += productoOriginal.getPrecio() * linea.getCantidad();
             } else {
                 throw new Exception("Producto no encontrado: " + linea.getProductoId());
             }
         }
 
-        pedido.setTotal(totalCalculado);
+        // --- LÓGICA DE DESCUENTO ---
+        // Si el pedido trae un descuento, lo restamos del subtotal calculado
+        double totalFinal = subtotalCalculado;
+        if (pedido.getDescuento() != null && pedido.getDescuento() > 0) {
+            totalFinal = subtotalCalculado - pedido.getDescuento();
+        }
+
+        pedido.setTotal(totalFinal);
         pedido.setId(UUID.randomUUID().toString());
         pedido.setEstado("PENDIENTE");
         pedido.setFecha(System.currentTimeMillis());
 
+        // Al usar set(pedido), Firestore guardará todos los campos que existan en el modelo Pedido.java
         db.collection("pedidos").document(pedido.getId()).set(pedido);
         return pedido.getId();
     }
@@ -107,7 +115,7 @@ public class PedidoService {
     }
 
     private String obtenerCuerpoNotificacion(String estado, String idPedido) {
-        String idCorto = idPedido.substring(0, 8).toUpperCase();
+        String idCorto = idPedido.length() > 8 ? idPedido.substring(0, 8).toUpperCase() : idPedido;
         return switch (estado) {
             case "COCINANDO" -> "El pedido #" + idCorto + " ya está siendo preparado.";
             case "REPARTO"   -> "El pedido #" + idCorto + " ha salido. Llegará pronto.";
