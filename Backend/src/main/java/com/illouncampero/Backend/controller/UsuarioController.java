@@ -50,7 +50,12 @@ public class UsuarioController {
     @PatchMapping("/{uid}/fcm-token")
     public ResponseEntity<Void> actualizarFcmToken(
             @PathVariable String uid,
-            @RequestBody Map<String, String> body) throws Exception {
+            @RequestBody Map<String, String> body,
+            Authentication authentication) throws Exception {
+
+        if (authentication == null || !uid.equals(authentication.getName())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
 
         String token = body.get("fcmToken");
         if (token == null || token.isEmpty()) {

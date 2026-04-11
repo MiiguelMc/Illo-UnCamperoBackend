@@ -44,10 +44,12 @@ public class PedidoService {
         }
 
         // --- LÓGICA DE DESCUENTO ---
-        // Si el pedido trae un descuento, lo restamos del subtotal calculado
+        // Subtotal siempre desde precios en BD; el descuento no puede superar ese subtotal
         double totalFinal = subtotalCalculado;
         if (pedido.getDescuento() != null && pedido.getDescuento() > 0) {
-            totalFinal = subtotalCalculado - pedido.getDescuento();
+            double descuentoAplicado = Math.min(pedido.getDescuento(), subtotalCalculado);
+            pedido.setDescuento(descuentoAplicado);
+            totalFinal = subtotalCalculado - descuentoAplicado;
         }
 
         pedido.setTotal(totalFinal);
@@ -145,15 +147,17 @@ public class PedidoService {
                 .collect(Collectors.toList());
 
         double dineroTotal = 0;
+        long pedidosContados = 0;
         for (Pedido p : pedidosDeHoy) {
             if (!"CANCELADO".equals(p.getEstado())) {
                 dineroTotal += p.getTotal();
+                pedidosContados++;
             }
         }
 
         Map<String, Object> estadisticas = new HashMap<>();
         estadisticas.put("totalDinero", dineroTotal);
-        estadisticas.put("totalPedidos", pedidosDeHoy.size());
+        estadisticas.put("totalPedidos", pedidosContados);
         return estadisticas;
     }
 }
