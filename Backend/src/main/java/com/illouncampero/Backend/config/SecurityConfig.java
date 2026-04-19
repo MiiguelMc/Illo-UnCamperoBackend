@@ -51,6 +51,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/pedidos/activos").hasAnyRole("ADMIN", "COCINA")
                 .requestMatchers(HttpMethod.GET, "/api/pedidos/estadisticas/**").hasAnyRole("ADMIN", "COCINA")
                 .requestMatchers(HttpMethod.PATCH, "/api/pedidos/*/estado").hasAnyRole("ADMIN", "COCINA")
+                .requestMatchers(HttpMethod.POST, "/api/pagos/crear-intent").authenticated()
                 .requestMatchers("/api/pedidos/**").authenticated()
                 .requestMatchers("/api/usuarios/**").authenticated()
                 .anyRequest().authenticated()
