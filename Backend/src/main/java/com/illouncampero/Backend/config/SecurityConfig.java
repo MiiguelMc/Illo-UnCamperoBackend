@@ -28,7 +28,11 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(request -> {
                 CorsConfiguration config = new CorsConfiguration();
-                config.setAllowedOrigins(List.of("*"));
+                config.setAllowedOrigins(List.of(
+                    "http://localhost:4200",
+                    "https://illo-uncampero.web.app",
+                    "https://illo-uncampero.firebaseapp.com"
+                ));
                 config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH"));
                 config.setAllowedHeaders(List.of("*"));
                 return config;
