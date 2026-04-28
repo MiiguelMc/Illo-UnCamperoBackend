@@ -1,35 +1,25 @@
 package com.illouncampero.Backend.controller;
 
-import com.stripe.Stripe;
-import com.stripe.model.PaymentIntent;
-import com.stripe.param.PaymentIntentCreateParams;
-import org.springframework.beans.factory.annotation.Value;
+import com.illouncampero.Backend.service.StripeService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/pagos")
-@CrossOrigin(origins = "*")
 public class StripeController {
 
-    @Value("${stripe.secret-key}")
-    private String stripeSecretKey;
+    private final StripeService stripeService;
+
+    public StripeController(StripeService stripeService) {
+        this.stripeService = stripeService;
+    }
 
     @PostMapping("/crear-intent")
-    public Map<String, String> crearIntent(@RequestBody Map<String, Object> body) throws Exception {
-        Stripe.apiKey = stripeSecretKey;
-
+    public ResponseEntity<Map<String, String>> crearIntent(@RequestBody Map<String, Object> body) throws Exception {
         double total = Double.parseDouble(body.get("total").toString());
-        // Stripe trabaja en céntimos (sin decimales)
-        long amountCents = Math.round(total * 100);
-
-        PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
-                .setAmount(amountCents)
-                .setCurrency("eur")
-                .build();
-
-        PaymentIntent intent = PaymentIntent.create(params);
-        return Map.of("clientSecret", intent.getClientSecret());
+        String clientSecret = stripeService.crearIntentPago(total);
+        return ResponseEntity.ok(Map.of("clientSecret", clientSecret));
     }
 }
