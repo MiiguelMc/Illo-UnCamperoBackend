@@ -2,9 +2,13 @@ package com.illouncampero.Backend.controller;
 
 import com.illouncampero.Backend.model.Pedido;
 import com.illouncampero.Backend.service.PedidoService;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/pedidos")
@@ -17,7 +21,9 @@ public class PedidoController {
     }
 
     @PostMapping("/realizar-pedido")
-    public String realizarPedido(@RequestBody Pedido pedido) throws Exception {
+    public String realizarPedido(@RequestBody Pedido pedido, Authentication authentication) throws Exception {
+        // El idUsuario siempre se toma del token, nunca del body
+        pedido.setIdUsuario(authentication.getName());
         return pedidoService.guardarNuevoPedido(pedido);
     }
 
@@ -26,9 +32,10 @@ public class PedidoController {
         return pedidoService.obtenerPedidosActivos();
     }
 
-    @GetMapping("/usuario/{uid}")
-    public List<Pedido> listarPorUsuario(@PathVariable String uid) throws Exception {
-        return pedidoService.obtenerPedidosPorUsuario(uid);
+    // El uid se resuelve desde el token, no desde la URL — Fix #4
+    @GetMapping("/mis-pedidos")
+    public List<Pedido> listarMisPedidos(Authentication authentication) throws Exception {
+        return pedidoService.obtenerPedidosPorUsuario(authentication.getName());
     }
 
     @PatchMapping("/{id}/estado")
@@ -36,13 +43,26 @@ public class PedidoController {
         return pedidoService.actualizarEstado(id, nuevoEstado);
     }
 
+    // Fix #5: verifica que el pedido pertenece al usuario autenticado (salvo admin/cocina)
     @GetMapping("/{id}")
-    public Pedido obtenerDetalles(@PathVariable String id) throws Exception {
-        return pedidoService.obtenerPorId(id);
+    public Pedido obtenerDetalles(@PathVariable String id, Authentication authentication) throws Exception {
+        Pedido pedido = pedidoService.obtenerPorId(id);
+        if (pedido == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Pedido no encontrado");
+        }
+
+        boolean esAdminOCocina = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_COCINA"));
+
+        if (!esAdminOCocina && !authentication.getName().equals(pedido.getIdUsuario())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
+        }
+
+        return pedido;
     }
 
     @GetMapping("/estadisticas/hoy")
-    public java.util.Map<String, Object> verVentasHoy() throws Exception {
+    public Map<String, Object> verVentasHoy() throws Exception {
         return pedidoService.obtenerVentasHoy();
     }
 }

@@ -39,7 +39,11 @@ public class UsuarioController {
     }
 
     @GetMapping("/{uid}")
-    public Usuario obtenerPerfil(@PathVariable String uid) throws Exception {
+    public Usuario obtenerPerfil(@PathVariable String uid, Authentication authentication) throws Exception {
+        // Solo puedes ver tu propio perfil — Fix #4
+        if (!uid.equals(authentication.getName())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
+        }
         Usuario user = usuarioService.obtenerPorUid(uid);
         if (user == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado");
