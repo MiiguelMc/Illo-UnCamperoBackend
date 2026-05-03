@@ -16,8 +16,14 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 public class FirebaseFilter extends OncePerRequestFilter {
+
+    // Endpoints que requieren email verificado
+    private static final Set<String> RUTAS_SENSIBLES = Set.of(
+        "/api/pedidos", "/api/pagos", "/api/resenas"
+    );
 
     private final Firestore db;
 
@@ -36,6 +42,16 @@ public class FirebaseFilter extends OncePerRequestFilter {
             try {
                 FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(token);
                 String uid = decodedToken.getUid();
+
+                // Bloquear rutas sensibles si el email no está verificado
+                String path = request.getRequestURI();
+                boolean rutaSensible = RUTAS_SENSIBLES.stream().anyMatch(path::startsWith);
+                if (rutaSensible && !decodedToken.isEmailVerified()) {
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"error\":\"Debes verificar tu email antes de continuar\"}");
+                    return;
+                }
 
                 DocumentSnapshot userDoc = db.collection("usuarios").document(uid).get().get();
 
