@@ -1,7 +1,9 @@
 package com.illouncampero.Backend.controller;
 
 import com.illouncampero.Backend.model.Pedido;
+import com.illouncampero.Backend.model.dto.CrearPedidoRequest;
 import com.illouncampero.Backend.service.PedidoService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -21,10 +23,9 @@ public class PedidoController {
     }
 
     @PostMapping("/realizar-pedido")
-    public String realizarPedido(@RequestBody Pedido pedido, Authentication authentication) throws Exception {
-        // El idUsuario siempre se toma del token, nunca del body
-        pedido.setIdUsuario(authentication.getName());
-        return pedidoService.guardarNuevoPedido(pedido);
+    public String realizarPedido(@Valid @RequestBody CrearPedidoRequest request,
+                                 Authentication authentication) throws Exception {
+        return pedidoService.guardarNuevoPedido(request, authentication.getName());
     }
 
     @GetMapping("/activos")
@@ -32,18 +33,24 @@ public class PedidoController {
         return pedidoService.obtenerPedidosActivos();
     }
 
-    // El uid se resuelve desde el token, no desde la URL — Fix #4
+    @GetMapping("/todos")
+    public List<Pedido> listarTodos(
+            @RequestParam(required = false) Long desde,
+            @RequestParam(required = false) Long hasta) throws Exception {
+        return pedidoService.obtenerTodosPedidos(desde, hasta);
+    }
+
     @GetMapping("/mis-pedidos")
     public List<Pedido> listarMisPedidos(Authentication authentication) throws Exception {
         return pedidoService.obtenerPedidosPorUsuario(authentication.getName());
     }
 
     @PatchMapping("/{id}/estado")
-    public String cambiarEstado(@PathVariable String id, @RequestParam String nuevoEstado) throws Exception {
+    public String cambiarEstado(@PathVariable String id,
+                                @RequestParam String nuevoEstado) throws Exception {
         return pedidoService.actualizarEstado(id, nuevoEstado);
     }
 
-    // Fix #5: verifica que el pedido pertenece al usuario autenticado (salvo admin/cocina)
     @GetMapping("/{id}")
     public Pedido obtenerDetalles(@PathVariable String id, Authentication authentication) throws Exception {
         Pedido pedido = pedidoService.obtenerPorId(id);
@@ -64,5 +71,12 @@ public class PedidoController {
     @GetMapping("/estadisticas/hoy")
     public Map<String, Object> verVentasHoy() throws Exception {
         return pedidoService.obtenerVentasHoy();
+    }
+
+    @GetMapping("/estadisticas/productos")
+    public List<Map<String, Object>> topProductos(
+            @RequestParam(required = false) Long desde,
+            @RequestParam(required = false) Long hasta) throws Exception {
+        return pedidoService.obtenerTopProductos(desde, hasta);
     }
 }

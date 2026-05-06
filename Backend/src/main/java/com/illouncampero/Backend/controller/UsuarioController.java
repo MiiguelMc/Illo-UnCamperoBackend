@@ -13,7 +13,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/usuarios")
-@CrossOrigin(origins = "*")
 public class UsuarioController {
 
     private final UsuarioService usuarioService;
@@ -27,20 +26,19 @@ public class UsuarioController {
     @PostMapping("/registro")
     public String registrarPerfil(@RequestBody Usuario usuario) throws Exception {
         usuario.setRol("CLIENTE");
-        return usuarioService.guardarPerfil(usuario);
+        return usuarioService.registrarPerfil(usuario);
     }
 
     @PutMapping("/perfil")
-    public ResponseEntity<?> actualizarPerfil(@RequestBody Usuario usuario, Authentication authentication) throws Exception {
-        String uidAutenticado = authentication.getName();
-        usuario.setUid(uidAutenticado);
+    public ResponseEntity<?> actualizarPerfil(@RequestBody Usuario usuario,
+                                              Authentication authentication) throws Exception {
+        usuario.setUid(authentication.getName());
         usuarioService.guardarPerfil(usuario);
         return ResponseEntity.ok(usuario);
     }
 
     @GetMapping("/{uid}")
     public Usuario obtenerPerfil(@PathVariable String uid, Authentication authentication) throws Exception {
-        // Solo puedes ver tu propio perfil — Fix #4
         if (!uid.equals(authentication.getName())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
         }
@@ -68,5 +66,11 @@ public class UsuarioController {
 
         db.collection("usuarios").document(uid).update("fcmToken", token).get();
         return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/cuenta")
+    public ResponseEntity<Void> eliminarCuenta(Authentication authentication) throws Exception {
+        usuarioService.eliminarCuenta(authentication.getName());
+        return ResponseEntity.noContent().build();
     }
 }

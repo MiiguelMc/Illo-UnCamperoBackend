@@ -1,16 +1,15 @@
 package com.illouncampero.Backend.service;
 
 import com.google.cloud.firestore.Firestore;
+import com.google.cloud.firestore.Query;
 import com.illouncampero.Backend.model.LineaPedido;
 import com.illouncampero.Backend.model.Pedido;
 import com.illouncampero.Backend.model.Producto;
+import com.illouncampero.Backend.model.dto.CrearPedidoRequest;
+import com.illouncampero.Backend.model.dto.LineaPedidoRequest;
 import org.springframework.stereotype.Service;
 
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -19,35 +18,53 @@ public class PedidoService {
     private final Firestore db;
     private final ProductoService productoService;
     private final NotificacionService notificacionService;
+    private final EmailService emailService;
 
-    public PedidoService(Firestore db, ProductoService productoService, NotificacionService notificacionService) {
+    public PedidoService(Firestore db, ProductoService productoService,
+                         NotificacionService notificacionService, EmailService emailService) {
         this.db = db;
         this.productoService = productoService;
         this.notificacionService = notificacionService;
+        this.emailService = emailService;
     }
 
-    public String guardarNuevoPedido(Pedido pedido) throws Exception {
-        if (pedido.getProductos() == null || pedido.getProductos().isEmpty()) {
-            throw new Exception("El pedido no tiene productos");
-        }
+    public String guardarNuevoPedido(CrearPedidoRequest request, String uid) throws Exception {
+        Pedido pedido = new Pedido();
+        pedido.setIdUsuario(uid);
+        pedido.setNombreCliente(request.getNombreCliente());
+        pedido.setDireccion(request.getDireccion());
+        pedido.setTelefono(request.getTelefono());
+        pedido.setNotasGenerales(request.getNotasGenerales());
+        pedido.setMetodoPago(request.getMetodoPago());
+        pedido.setCupon(request.getCupon());
 
+        List<LineaPedido> lineas = new ArrayList<>();
         double subtotalCalculado = 0;
-        for (LineaPedido linea : pedido.getProductos()) {
-            Producto productoOriginal = productoService.obtenerPorId(linea.getProductoId());
-            if (productoOriginal != null) {
-                linea.setNombre(productoOriginal.getNombre());
-                linea.setPrecioUnidad(productoOriginal.getPrecio());
-                subtotalCalculado += productoOriginal.getPrecio() * linea.getCantidad();
-            } else {
-                throw new Exception("Producto no encontrado: " + linea.getProductoId());
+
+        for (LineaPedidoRequest lineaReq : request.getProductos()) {
+            Producto productoOriginal = productoService.obtenerPorId(lineaReq.getProductoId());
+            if (productoOriginal == null) {
+                throw new IllegalArgumentException("Producto no encontrado: " + lineaReq.getProductoId());
             }
+            if (Boolean.FALSE.equals(productoOriginal.getDisponible())) {
+                throw new IllegalArgumentException("El producto no está disponible: " + productoOriginal.getNombre());
+            }
+
+            LineaPedido linea = new LineaPedido();
+            linea.setProductoId(lineaReq.getProductoId());
+            linea.setNombre(productoOriginal.getNombre());
+            linea.setCantidad(lineaReq.getCantidad());
+            linea.setPrecioUnidad(productoOriginal.getPrecio());
+            linea.setNotas(lineaReq.getNotas());
+            lineas.add(linea);
+            subtotalCalculado += productoOriginal.getPrecio() * lineaReq.getCantidad();
         }
 
-        // --- LÓGICA DE DESCUENTO ---
-        // Subtotal siempre desde precios en BD; el descuento no puede superar ese subtotal
+        pedido.setProductos(lineas);
+
         double totalFinal = subtotalCalculado;
-        if (pedido.getDescuento() != null && pedido.getDescuento() > 0) {
-            double descuentoAplicado = Math.min(pedido.getDescuento(), subtotalCalculado);
+        if (request.getDescuento() != null && request.getDescuento() > 0) {
+            double descuentoAplicado = Math.min(request.getDescuento(), subtotalCalculado);
             pedido.setDescuento(descuentoAplicado);
             totalFinal = subtotalCalculado - descuentoAplicado;
         }
@@ -57,14 +74,27 @@ public class PedidoService {
         pedido.setEstado("PENDIENTE");
         pedido.setFecha(System.currentTimeMillis());
 
-        // Al usar set(pedido), Firestore guardará todos los campos que existan en el modelo Pedido.java
-        db.collection("pedidos").document(pedido.getId()).set(pedido);
+        db.collection("pedidos").document(pedido.getId()).set(pedido).get();
+
+        // Email de confirmación — no bloquea la respuesta
+        try {
+            var usuarioDoc = db.collection("usuarios").document(uid).get().get();
+            if (usuarioDoc.exists()) {
+                String email = usuarioDoc.getString("email");
+                String nombre = usuarioDoc.getString("nombre");
+                if (email != null && !email.isEmpty()) {
+                    emailService.enviarConfirmacionPedido(email, nombre != null ? nombre : "Cliente", pedido);
+                }
+            }
+        } catch (Exception ignored) {}
+
         return pedido.getId();
     }
 
     public List<Pedido> obtenerPedidosPorUsuario(String uid) throws Exception {
         return db.collection("pedidos")
                 .whereEqualTo("idUsuario", uid)
+                .orderBy("fecha", Query.Direction.DESCENDING)
                 .get().get().getDocuments()
                 .stream()
                 .map(doc -> doc.toObject(Pedido.class))
@@ -80,15 +110,31 @@ public class PedidoService {
                 .collect(Collectors.toList());
     }
 
+    public List<Pedido> obtenerTodosPedidos(Long desde, Long hasta) throws Exception {
+        var query = db.collection("pedidos").orderBy("fecha", Query.Direction.DESCENDING);
+
+        if (desde != null) {
+            query = query.whereGreaterThanOrEqualTo("fecha", desde);
+        }
+        if (hasta != null) {
+            query = query.whereLessThanOrEqualTo("fecha", hasta);
+        }
+
+        return query.get().get().getDocuments()
+                .stream()
+                .map(doc -> doc.toObject(Pedido.class))
+                .collect(Collectors.toList());
+    }
+
     public String actualizarEstado(String idPedido, String nuevoEstado) throws Exception {
         List<String> estadosValidos = List.of("PENDIENTE", "COCINANDO", "REPARTO", "ENTREGADO", "CANCELADO");
         String estadoMayus = nuevoEstado.toUpperCase();
 
         if (!estadosValidos.contains(estadoMayus)) {
-            throw new Exception("Estado no válido: " + nuevoEstado + ". Opciones: " + estadosValidos);
+            throw new IllegalArgumentException("Estado no válido: " + nuevoEstado + ". Opciones: " + estadosValidos);
         }
 
-        db.collection("pedidos").document(idPedido).update("estado", estadoMayus);
+        db.collection("pedidos").document(idPedido).update("estado", estadoMayus).get();
 
         Pedido pedido = obtenerPorId(idPedido);
         if (pedido != null && pedido.getIdUsuario() != null) {
@@ -96,35 +142,16 @@ public class PedidoService {
             if (usuarioDoc.exists()) {
                 String fcmToken = usuarioDoc.getString("fcmToken");
                 if (fcmToken != null && !fcmToken.isEmpty()) {
-                    String titulo = obtenerTituloNotificacion(estadoMayus);
-                    String cuerpo = obtenerCuerpoNotificacion(estadoMayus, idPedido);
-                    notificacionService.enviarNotificacion(fcmToken, titulo, cuerpo);
+                    notificacionService.enviarNotificacion(
+                            fcmToken,
+                            obtenerTituloNotificacion(estadoMayus),
+                            obtenerCuerpoNotificacion(estadoMayus, idPedido)
+                    );
                 }
             }
         }
 
         return "Pedido " + idPedido + " actualizado a " + estadoMayus;
-    }
-
-    private String obtenerTituloNotificacion(String estado) {
-        return switch (estado) {
-            case "COCINANDO" -> "Tu pedido está en cocina";
-            case "REPARTO"   -> "Tu pedido está en camino";
-            case "ENTREGADO" -> "Pedido entregado";
-            case "CANCELADO" -> "Pedido cancelado";
-            default          -> "Actualización de tu pedido";
-        };
-    }
-
-    private String obtenerCuerpoNotificacion(String estado, String idPedido) {
-        String idCorto = idPedido.length() > 8 ? idPedido.substring(0, 8).toUpperCase() : idPedido;
-        return switch (estado) {
-            case "COCINANDO" -> "El pedido #" + idCorto + " ya está siendo preparado.";
-            case "REPARTO"   -> "El pedido #" + idCorto + " ha salido. Llegará pronto.";
-            case "ENTREGADO" -> "El pedido #" + idCorto + " ha sido entregado. Buen provecho.";
-            case "CANCELADO" -> "El pedido #" + idCorto + " ha sido cancelado.";
-            default          -> "Tu pedido #" + idCorto + " ha cambiado de estado a " + estado;
-        };
     }
 
     public Pedido obtenerPorId(String id) throws Exception {
@@ -159,5 +186,59 @@ public class PedidoService {
         estadisticas.put("totalDinero", dineroTotal);
         estadisticas.put("totalPedidos", pedidosContados);
         return estadisticas;
+    }
+
+    public List<Map<String, Object>> obtenerTopProductos(Long desde, Long hasta) throws Exception {
+        var query = db.collection("pedidos").orderBy("fecha", Query.Direction.DESCENDING);
+
+        if (desde != null) query = query.whereGreaterThanOrEqualTo("fecha", desde);
+        if (hasta != null) query = query.whereLessThanOrEqualTo("fecha", hasta);
+
+        List<Pedido> pedidos = query.get().get().getDocuments()
+                .stream()
+                .map(doc -> doc.toObject(Pedido.class))
+                .filter(p -> !"CANCELADO".equals(p.getEstado()))
+                .collect(Collectors.toList());
+
+        Map<String, Long> conteo = new HashMap<>();
+        for (Pedido p : pedidos) {
+            if (p.getProductos() != null) {
+                for (var linea : p.getProductos()) {
+                    conteo.merge(linea.getNombre(), (long) linea.getCantidad(), Long::sum);
+                }
+            }
+        }
+
+        return conteo.entrySet().stream()
+                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                .limit(10)
+                .map(e -> {
+                    Map<String, Object> item = new HashMap<>();
+                    item.put("nombre", e.getKey());
+                    item.put("unidades", e.getValue());
+                    return item;
+                })
+                .collect(Collectors.toList());
+    }
+
+    private String obtenerTituloNotificacion(String estado) {
+        return switch (estado) {
+            case "COCINANDO" -> "Tu pedido está en cocina";
+            case "REPARTO"   -> "Tu pedido está en camino";
+            case "ENTREGADO" -> "Pedido entregado";
+            case "CANCELADO" -> "Pedido cancelado";
+            default          -> "Actualización de tu pedido";
+        };
+    }
+
+    private String obtenerCuerpoNotificacion(String estado, String idPedido) {
+        String idCorto = idPedido.length() > 8 ? idPedido.substring(0, 8).toUpperCase() : idPedido;
+        return switch (estado) {
+            case "COCINANDO" -> "El pedido #" + idCorto + " ya está siendo preparado.";
+            case "REPARTO"   -> "El pedido #" + idCorto + " ha salido. Llegará pronto.";
+            case "ENTREGADO" -> "El pedido #" + idCorto + " ha sido entregado. Buen provecho.";
+            case "CANCELADO" -> "El pedido #" + idCorto + " ha sido cancelado.";
+            default          -> "Tu pedido #" + idCorto + " ha cambiado de estado a " + estado;
+        };
     }
 }

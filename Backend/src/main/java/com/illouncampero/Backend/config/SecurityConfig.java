@@ -61,6 +61,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/tienda/estado").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/resenas").permitAll()
                 // Solo ADMIN
+                .requestMatchers(HttpMethod.GET, "/api/cloudinary/firma").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/productos/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/productos/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/productos/**").hasRole("ADMIN")
@@ -70,9 +71,11 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PATCH, "/api/cupones/**").hasRole("ADMIN")
                 // ADMIN o COCINA
                 .requestMatchers(HttpMethod.GET, "/api/pedidos/activos").hasAnyRole("ADMIN", "COCINA")
+                .requestMatchers(HttpMethod.GET, "/api/pedidos/todos").hasAnyRole("ADMIN", "COCINA")
                 .requestMatchers(HttpMethod.GET, "/api/pedidos/estadisticas/**").hasAnyRole("ADMIN", "COCINA")
                 .requestMatchers(HttpMethod.PATCH, "/api/pedidos/*/estado").hasAnyRole("ADMIN", "COCINA")
                 // Autenticado
+                .requestMatchers(HttpMethod.DELETE, "/api/usuarios/cuenta").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/resenas").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/cupones/validar").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/pagos/crear-intent").authenticated()
