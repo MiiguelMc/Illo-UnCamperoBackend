@@ -46,7 +46,7 @@ public class PedidoService {
             if (productoOriginal == null) {
                 throw new IllegalArgumentException("Producto no encontrado: " + lineaReq.getProductoId());
             }
-            if (Boolean.FALSE.equals(productoOriginal.getDisponible())) {
+            if (!productoOriginal.isDisponible()) {
                 throw new IllegalArgumentException("El producto no está disponible: " + productoOriginal.getNombre());
             }
 
