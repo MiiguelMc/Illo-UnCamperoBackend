@@ -111,18 +111,22 @@ public class PedidoService {
     }
 
     public List<Pedido> obtenerTodosPedidos(Long desde, Long hasta) throws Exception {
-        var query = db.collection("pedidos").orderBy("fecha", Query.Direction.DESCENDING);
+        var ref = db.collection("pedidos");
+        com.google.cloud.firestore.Query query = ref;
 
-        if (desde != null) {
-            query = query.whereGreaterThanOrEqualTo("fecha", desde);
-        }
-        if (hasta != null) {
-            query = query.whereLessThanOrEqualTo("fecha", hasta);
+        if (desde != null && hasta != null) {
+            query = ref.whereGreaterThanOrEqualTo("fecha", desde)
+                       .whereLessThanOrEqualTo("fecha", hasta);
+        } else if (desde != null) {
+            query = ref.whereGreaterThanOrEqualTo("fecha", desde);
+        } else if (hasta != null) {
+            query = ref.whereLessThanOrEqualTo("fecha", hasta);
         }
 
         return query.get().get().getDocuments()
                 .stream()
                 .map(doc -> doc.toObject(Pedido.class))
+                .sorted((a, b) -> Long.compare(b.getFecha(), a.getFecha()))
                 .collect(Collectors.toList());
     }
 
@@ -189,10 +193,17 @@ public class PedidoService {
     }
 
     public List<Map<String, Object>> obtenerTopProductos(Long desde, Long hasta) throws Exception {
-        var query = db.collection("pedidos").orderBy("fecha", Query.Direction.DESCENDING);
+        var ref = db.collection("pedidos");
+        com.google.cloud.firestore.Query query = ref;
 
-        if (desde != null) query = query.whereGreaterThanOrEqualTo("fecha", desde);
-        if (hasta != null) query = query.whereLessThanOrEqualTo("fecha", hasta);
+        if (desde != null && hasta != null) {
+            query = ref.whereGreaterThanOrEqualTo("fecha", desde)
+                       .whereLessThanOrEqualTo("fecha", hasta);
+        } else if (desde != null) {
+            query = ref.whereGreaterThanOrEqualTo("fecha", desde);
+        } else if (hasta != null) {
+            query = ref.whereLessThanOrEqualTo("fecha", hasta);
+        }
 
         List<Pedido> pedidos = query.get().get().getDocuments()
                 .stream()

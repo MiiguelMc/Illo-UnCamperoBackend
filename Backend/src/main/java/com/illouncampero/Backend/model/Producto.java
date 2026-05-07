@@ -28,4 +28,5 @@ public class Producto {
     private String subcategoria;
     
     private boolean disponible;
+    private boolean esOferta;
 }
