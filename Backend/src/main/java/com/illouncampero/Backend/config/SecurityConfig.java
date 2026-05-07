@@ -9,6 +9,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
+import org.springframework.security.web.header.writers.StaticHeadersWriter;
 import org.springframework.web.cors.CorsConfiguration;
 
 import java.util.List;
@@ -39,15 +40,14 @@ public class SecurityConfig {
                 return config;
             }))
             .headers(headers -> headers
-                .contentSecurityPolicy(csp -> csp
-                    .policyDirectives("default-src 'self'; connect-src 'self' https://firebaseapp.com https://googleapis.com; object-src 'none'")
-                )
+                // CSP no aplica a respuestas JSON de la API — la CSP real está en index.html del frontend
                 .referrerPolicy(ref -> ref
                     .policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
                 )
-                .permissionsPolicy(perm -> perm
-                    .policy("camera=(), microphone=(), geolocation=()")
-                )
+                // permissionsPolicy(Customizer) está deprecado en Spring Security 6.x
+                .addHeaderWriter(new StaticHeadersWriter(
+                    "Permissions-Policy", "camera=(), microphone=(), geolocation=()"
+                ))
             )
             .authorizeHttpRequests(auth -> auth
                 // Swagger y Actuator bloqueados siempre (application-prod.properties los deshabilita en prod)
