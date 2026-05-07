@@ -11,7 +11,6 @@ import java.util.concurrent.ExecutionException;
 
 @RestController
 @RequestMapping("/api/resenas")
-@CrossOrigin(origins = "*")
 public class ResenaController {
 
     private final Firestore db;

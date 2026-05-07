@@ -10,7 +10,6 @@ import java.util.concurrent.ExecutionException;
 
 @RestController
 @RequestMapping("/api/tienda")
-@CrossOrigin(origins = "*")
 public class TiendaController {
 
     private final Firestore db;

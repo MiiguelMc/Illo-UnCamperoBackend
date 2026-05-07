@@ -14,7 +14,6 @@ import java.util.concurrent.ExecutionException;
 
 @RestController
 @RequestMapping("/api/cupones")
-@CrossOrigin(origins = "*")
 public class CuponController {
 
     private final Firestore db;
