@@ -28,10 +28,21 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 .build();
     }
 
+    private String getClientIp(HttpServletRequest request) {
+        // Render (y la mayoría de proxies) pone la IP real del cliente en X-Forwarded-For.
+        // request.getRemoteAddr() devuelve la IP del load balancer, no la del usuario.
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) {
+            // El header puede tener múltiples IPs: "clienteReal, proxy1, proxy2"
+            return forwarded.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
+    }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-        String ip = request.getRemoteAddr();
+        String ip = getClientIp(request);
         String path = request.getRequestURI();
 
         // Límites más estrictos en endpoints sensibles
