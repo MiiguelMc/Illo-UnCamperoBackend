@@ -50,6 +50,11 @@ public class ResenaController {
             return ResponseEntity.status(403).body("No puedes valorar un pedido que no es tuyo.");
         }
 
+        Boolean yaValorado = pedidoDoc.getBoolean("valorado");
+        if (Boolean.TRUE.equals(yaValorado)) {
+            return ResponseEntity.badRequest().body("Este pedido ya ha sido valorado.");
+        }
+
         String id = UUID.randomUUID().toString();
         Map<String, Object> datos = new HashMap<>();
         datos.put("id", id);

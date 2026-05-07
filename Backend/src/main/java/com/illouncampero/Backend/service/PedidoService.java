@@ -92,12 +92,14 @@ public class PedidoService {
     }
 
     public List<Pedido> obtenerPedidosPorUsuario(String uid) throws Exception {
+        // Sin orderBy para evitar requerir índice compuesto en Firestore.
+        // La ordenación se hace en Java.
         return db.collection("pedidos")
                 .whereEqualTo("idUsuario", uid)
-                .orderBy("fecha", Query.Direction.DESCENDING)
                 .get().get().getDocuments()
                 .stream()
                 .map(doc -> doc.toObject(Pedido.class))
+                .sorted((a, b) -> Long.compare(b.getFecha(), a.getFecha()))
                 .collect(Collectors.toList());
     }
 
