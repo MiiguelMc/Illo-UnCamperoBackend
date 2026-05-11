@@ -140,9 +140,24 @@ public class PedidoService {
             throw new IllegalArgumentException("Estado no válido: " + nuevoEstado + ". Opciones: " + estadosValidos);
         }
 
+        Pedido pedido = obtenerPorId(idPedido);
+        if (pedido == null) {
+            throw new IllegalArgumentException("Pedido no encontrado: " + idPedido);
+        }
+
+        String estadoActual = pedido.getEstado() != null ? pedido.getEstado().toUpperCase() : "";
+        if ("CANCELADO".equals(estadoMayus) && !"PENDIENTE".equals(estadoActual)) {
+            throw new IllegalStateException(
+                    "No se puede cancelar un pedido que ya esta en preparacion, reparto, entregado o cancelado."
+            );
+        }
+
+        if (estadoMayus.equals(estadoActual)) {
+            return "Pedido " + idPedido + " ya esta en " + estadoMayus;
+        }
+
         db.collection("pedidos").document(idPedido).update("estado", estadoMayus).get();
 
-        Pedido pedido = obtenerPorId(idPedido);
         if (pedido != null && pedido.getIdUsuario() != null) {
             var usuarioDoc = db.collection("usuarios").document(pedido.getIdUsuario()).get().get();
             if (usuarioDoc.exists()) {
