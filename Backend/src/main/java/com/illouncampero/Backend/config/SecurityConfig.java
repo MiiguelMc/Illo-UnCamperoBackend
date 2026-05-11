@@ -32,11 +32,13 @@ public class SecurityConfig {
                 CorsConfiguration config = new CorsConfiguration();
                 config.setAllowedOrigins(List.of(
                     "http://localhost:4200",
+                    "http://127.0.0.1:4200",
                     "https://illo-uncampero.web.app",
                     "https://illo-uncampero.firebaseapp.com"
                 ));
-                config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH"));
+                config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
                 config.setAllowedHeaders(List.of("*"));
+                config.setAllowCredentials(true);
                 return config;
             }))
             .headers(headers -> headers
@@ -50,6 +52,8 @@ public class SecurityConfig {
                 ))
             )
             .authorizeHttpRequests(auth -> auth
+                // Preflight CORS
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 // Swagger y Actuator bloqueados siempre (application-prod.properties los deshabilita en prod)
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**",
                                  "/swagger-resources/**", "/webjars/**").denyAll()
