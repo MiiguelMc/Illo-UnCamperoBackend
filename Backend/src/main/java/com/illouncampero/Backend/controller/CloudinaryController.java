@@ -28,7 +28,6 @@ public class CloudinaryController {
     public ResponseEntity<Map<String, String>> generarFirma() throws Exception {
         String timestamp = String.valueOf(System.currentTimeMillis() / 1000);
 
-        // Los parámetros que se van a enviar al upload, ordenados alfabéticamente
         String paramsAFirmar = "folder=productos&timestamp=" + timestamp + apiSecret;
 
         MessageDigest md = MessageDigest.getInstance("SHA-1");

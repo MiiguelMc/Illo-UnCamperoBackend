@@ -18,7 +18,6 @@ public class FirebaseConfig {
 
     @Bean
     public FirebaseApp firebaseApp() throws IOException {
-        // Si ya existe una instancia, la devolvemos (evita errores en reinicios calientes)
         if (!FirebaseApp.getApps().isEmpty()) {
             return FirebaseApp.getInstance();
         }
@@ -41,8 +40,6 @@ public class FirebaseConfig {
 
     @Bean
     public Firestore firestore(FirebaseApp firebaseApp) {
-        // Al pasar firebaseApp como parámetro, Spring se asegura de que
-        // primero se ejecute el método de arriba.
         return FirestoreClient.getFirestore(firebaseApp);
     }
 }

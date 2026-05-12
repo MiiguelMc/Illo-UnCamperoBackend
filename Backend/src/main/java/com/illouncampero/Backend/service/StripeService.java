@@ -7,10 +7,6 @@ import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-/**
- * Toda la lógica de Stripe vive aquí.
- * El controller solo delega — nunca conoce la API de Stripe directamente.
- */
 @Service
 public class StripeService {
 

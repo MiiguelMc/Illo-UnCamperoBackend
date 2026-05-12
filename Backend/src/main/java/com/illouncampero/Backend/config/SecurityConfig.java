@@ -42,7 +42,6 @@ public class SecurityConfig {
                 return config;
             }))
             .headers(headers -> headers
-                // CSP no aplica a respuestas JSON de la API — la CSP real está en index.html del frontend
                 .referrerPolicy(ref -> ref
                     .policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
                 )
