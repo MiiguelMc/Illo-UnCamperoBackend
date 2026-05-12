@@ -12,11 +12,10 @@ import static org.junit.jupiter.api.Assertions.*;
 class UsuarioServiceTest {
 
     @Mock private com.google.cloud.firestore.Firestore db;
-    @Mock private EmailService emailService;
 
     @Test
     void guardarPerfilSinUidLanzaExcepcion() {
-        UsuarioService service = new UsuarioService(db, emailService);
+        UsuarioService service = new UsuarioService(db);
 
         Usuario usuario = new Usuario();
         usuario.setUid(null);
@@ -29,7 +28,7 @@ class UsuarioServiceTest {
 
     @Test
     void guardarPerfilConUidVacioLanzaExcepcion() {
-        UsuarioService service = new UsuarioService(db, emailService);
+        UsuarioService service = new UsuarioService(db);
 
         Usuario usuario = new Usuario();
         usuario.setUid("   ");

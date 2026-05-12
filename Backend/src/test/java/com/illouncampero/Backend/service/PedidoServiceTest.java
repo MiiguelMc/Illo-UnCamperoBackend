@@ -24,20 +24,15 @@ class PedidoServiceTest {
     @Mock private Firestore db;
     @Mock private ProductoService productoService;
     @Mock private NotificacionService notificacionService;
-    @Mock private EmailService emailService;
     @Mock private CollectionReference coleccionPedidos;
     @Mock private DocumentReference docRef;
     @Mock private ApiFuture<WriteResult> writeResultFuture;
-    @Mock private CollectionReference coleccionUsuarios;
-    @Mock private DocumentReference usuarioDocRef;
-    @Mock private ApiFuture<DocumentSnapshot> userFuture;
-    @Mock private DocumentSnapshot usuarioSnapshot;
 
     private PedidoService pedidoService;
 
     @BeforeEach
     void setUp() {
-        pedidoService = new PedidoService(db, productoService, notificacionService, emailService);
+        pedidoService = new PedidoService(db, productoService, notificacionService);
     }
 
     @Test
@@ -100,11 +95,6 @@ class PedidoServiceTest {
         when(coleccionPedidos.document(anyString())).thenReturn(docRef);
         when(docRef.set(any())).thenReturn(writeResultFuture);
         when(writeResultFuture.get()).thenReturn(mock(WriteResult.class));
-        when(db.collection("usuarios")).thenReturn(coleccionUsuarios);
-        when(coleccionUsuarios.document(anyString())).thenReturn(usuarioDocRef);
-        when(usuarioDocRef.get()).thenReturn(userFuture);
-        when(userFuture.get()).thenReturn(usuarioSnapshot);
-        when(usuarioSnapshot.exists()).thenReturn(false);
 
         CrearPedidoRequest request = new CrearPedidoRequest();
         LineaPedidoRequest linea = new LineaPedidoRequest();

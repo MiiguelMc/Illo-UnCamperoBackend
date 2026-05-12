@@ -11,11 +11,9 @@ import org.springframework.stereotype.Service;
 public class UsuarioService {
 
     private final Firestore db;
-    private final EmailService emailService;
 
-    public UsuarioService(Firestore db, EmailService emailService) {
+    public UsuarioService(Firestore db) {
         this.db = db;
-        this.emailService = emailService;
     }
 
     public String guardarPerfil(Usuario usuario) throws Exception {
@@ -32,14 +30,7 @@ public class UsuarioService {
     }
 
     public String registrarPerfil(Usuario usuario) throws Exception {
-        String resultado = guardarPerfil(usuario);
-
-        if (usuario.getEmail() != null && !usuario.getEmail().isEmpty()) {
-            String nombre = usuario.getNombre() != null ? usuario.getNombre() : "Cliente";
-            emailService.enviarBienvenida(usuario.getEmail(), nombre);
-        }
-
-        return resultado;
+        return guardarPerfil(usuario);
     }
 
     public Usuario obtenerPorUid(String uid) throws Exception {

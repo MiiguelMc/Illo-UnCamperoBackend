@@ -18,14 +18,12 @@ public class PedidoService {
     private final Firestore db;
     private final ProductoService productoService;
     private final NotificacionService notificacionService;
-    private final EmailService emailService;
 
     public PedidoService(Firestore db, ProductoService productoService,
-                         NotificacionService notificacionService, EmailService emailService) {
+                         NotificacionService notificacionService) {
         this.db = db;
         this.productoService = productoService;
         this.notificacionService = notificacionService;
-        this.emailService = emailService;
     }
 
     public String guardarNuevoPedido(CrearPedidoRequest request, String uid) throws Exception {
@@ -75,18 +73,6 @@ public class PedidoService {
         pedido.setFecha(System.currentTimeMillis());
 
         db.collection("pedidos").document(pedido.getId()).set(pedido).get();
-
-        // Email de confirmación — no bloquea la respuesta
-        try {
-            var usuarioDoc = db.collection("usuarios").document(uid).get().get();
-            if (usuarioDoc.exists()) {
-                String email = usuarioDoc.getString("email");
-                String nombre = usuarioDoc.getString("nombre");
-                if (email != null && !email.isEmpty()) {
-                    emailService.enviarConfirmacionPedido(email, nombre != null ? nombre : "Cliente", pedido);
-                }
-            }
-        } catch (Exception ignored) {}
 
         return pedido.getId();
     }
