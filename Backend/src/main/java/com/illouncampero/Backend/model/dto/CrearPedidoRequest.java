@@ -1,6 +1,8 @@
 package com.illouncampero.Backend.model.dto;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
@@ -27,5 +29,8 @@ public class CrearPedidoRequest {
     private String metodoPago;
 
     private String cupon;
+
+    @DecimalMin(value = "0.0", message = "El descuento no puede ser negativo")
+    @DecimalMax(value = "9999.99", message = "El descuento no puede superar 9999.99")
     private Double descuento;
 }

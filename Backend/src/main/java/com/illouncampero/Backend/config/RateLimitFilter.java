@@ -15,10 +15,15 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 
 @Component
 @Order(1)
 public class RateLimitFilter extends OncePerRequestFilter {
+
+    private static final Pattern IP_PATTERN = Pattern.compile(
+        "^(([0-9]{1,3}\\.){3}[0-9]{1,3}|[0-9a-fA-F:]+)$"
+    );
 
     private final Map<String, Bucket> buckets = new ConcurrentHashMap<>();
 
@@ -31,7 +36,10 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private String getClientIp(HttpServletRequest request) {
         String forwarded = request.getHeader("X-Forwarded-For");
         if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",")[0].trim();
+            String candidate = forwarded.split(",")[0].trim();
+            if (IP_PATTERN.matcher(candidate).matches()) {
+                return candidate;
+            }
         }
         return request.getRemoteAddr();
     }

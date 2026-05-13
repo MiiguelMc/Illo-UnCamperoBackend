@@ -1,6 +1,8 @@
 package com.illouncampero.Backend.controller;
 
+import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
+import com.google.cloud.firestore.WriteBatch;
 import com.illouncampero.Backend.model.Resena;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -64,8 +66,10 @@ public class ResenaController {
         datos.put("comentario", resena.getComentario() != null ? resena.getComentario() : "");
         datos.put("fecha", resena.getFecha());
 
-        db.collection("resenas").document(id).set(datos).get();
-        db.collection("pedidos").document(resena.getIdPedido()).update("valorado", true).get();
+        WriteBatch batch = db.batch();
+        batch.set(db.collection("resenas").document(id), datos);
+        batch.update(db.collection("pedidos").document(resena.getIdPedido()), "valorado", true);
+        batch.commit().get();
 
         return ResponseEntity.ok("Reseña guardada. Gracias por tu opinión.");
     }

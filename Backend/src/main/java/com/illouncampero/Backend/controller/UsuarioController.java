@@ -3,6 +3,7 @@ package com.illouncampero.Backend.controller;
 import com.google.cloud.firestore.Firestore;
 import com.illouncampero.Backend.model.Usuario;
 import com.illouncampero.Backend.service.UsuarioService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -24,13 +25,13 @@ public class UsuarioController {
     }
 
     @PostMapping("/registro")
-    public String registrarPerfil(@RequestBody Usuario usuario) throws Exception {
+    public String registrarPerfil(@Valid @RequestBody Usuario usuario) throws Exception {
         usuario.setRol("CLIENTE");
         return usuarioService.registrarPerfil(usuario);
     }
 
     @PutMapping("/perfil")
-    public ResponseEntity<?> actualizarPerfil(@RequestBody Usuario usuario,
+    public ResponseEntity<?> actualizarPerfil(@Valid @RequestBody Usuario usuario,
                                               Authentication authentication) throws Exception {
         usuario.setUid(authentication.getName());
         usuarioService.guardarPerfil(usuario);

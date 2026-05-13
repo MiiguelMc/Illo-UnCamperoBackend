@@ -91,7 +91,7 @@ public class CuponController {
 
     @GetMapping
     public ResponseEntity<?> listarCupones() throws ExecutionException, InterruptedException {
-        var docs = db.collection("cupones").get().get().getDocuments();
+        var docs = db.collection("cupones").limit(500).get().get().getDocuments();
         var lista = docs.stream().map(doc -> {
             Map<String, Object> c = new HashMap<>(doc.getData());
             c.put("id", doc.getId());
