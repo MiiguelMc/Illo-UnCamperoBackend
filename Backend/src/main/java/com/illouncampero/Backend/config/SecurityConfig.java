@@ -81,6 +81,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.DELETE, "/api/usuarios/cuenta").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/resenas").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/cupones/validar").authenticated()
+                .requestMatchers(HttpMethod.POST, "/api/pagos/webhook").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/pagos/crear-intent").authenticated()
                 .requestMatchers("/api/pedidos/**").authenticated()
                 .requestMatchers("/api/usuarios/**").authenticated()

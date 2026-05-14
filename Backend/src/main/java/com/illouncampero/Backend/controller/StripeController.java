@@ -3,12 +3,17 @@ package com.illouncampero.Backend.controller;
 import com.illouncampero.Backend.model.Pedido;
 import com.illouncampero.Backend.service.PedidoService;
 import com.illouncampero.Backend.service.StripeService;
+import com.stripe.exception.SignatureVerificationException;
+import com.stripe.model.Event;
+import com.stripe.model.PaymentIntent;
+import com.stripe.model.StripeObject;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/pagos")
@@ -37,14 +42,42 @@ public class StripeController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Pedido no encontrado"));
         }
 
-        // Verificar que el pedido pertenece al usuario autenticado
         String uidAutenticado = authentication.getName();
         if (!uidAutenticado.equals(pedido.getIdUsuario())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Acceso denegado"));
         }
 
-        // Total siempre desde la BD, nunca del cliente
-        String clientSecret = stripeService.crearIntentPago(pedido.getTotal());
+        String clientSecret = stripeService.crearIntentPago(pedido.getTotal(), pedidoId);
         return ResponseEntity.ok(Map.of("clientSecret", clientSecret));
+    }
+
+    @PostMapping("/webhook")
+    public ResponseEntity<String> webhook(
+            @RequestBody String payload,
+            @RequestHeader("Stripe-Signature") String sigHeader) {
+
+        Event event;
+        try {
+            event = stripeService.construirEvento(payload, sigHeader);
+        } catch (SignatureVerificationException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Firma inválida");
+        }
+
+        if ("payment_intent.succeeded".equals(event.getType())) {
+            Optional<StripeObject> stripeObject = event.getDataObjectDeserializer().getObject();
+            stripeObject.ifPresent(obj -> {
+                PaymentIntent intent = (PaymentIntent) obj;
+                String pedidoId = intent.getMetadata().get("pedidoId");
+                if (pedidoId != null) {
+                    try {
+                        pedidoService.actualizarEstado(pedidoId, "PENDIENTE");
+                    } catch (Exception e) {
+                        System.err.println("Error al actualizar pedido " + pedidoId + ": " + e.getMessage());
+                    }
+                }
+            });
+        }
+
+        return ResponseEntity.ok("OK");
     }
 }

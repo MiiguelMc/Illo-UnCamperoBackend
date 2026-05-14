@@ -23,9 +23,10 @@ public class PedidoController {
     }
 
     @PostMapping("/realizar-pedido")
-    public String realizarPedido(@Valid @RequestBody CrearPedidoRequest request,
-                                 Authentication authentication) throws Exception {
-        return pedidoService.guardarNuevoPedido(request, authentication.getName());
+    public Map<String, String> realizarPedido(@Valid @RequestBody CrearPedidoRequest request,
+                                              Authentication authentication) throws Exception {
+        String id = pedidoService.guardarNuevoPedido(request, authentication.getName());
+        return Map.of("id", id);
     }
 
     @GetMapping("/activos")

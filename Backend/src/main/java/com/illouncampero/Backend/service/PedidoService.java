@@ -69,7 +69,7 @@ public class PedidoService {
 
         pedido.setTotal(totalFinal);
         pedido.setId(UUID.randomUUID().toString());
-        pedido.setEstado("PENDIENTE");
+        pedido.setEstado("TARJETA".equals(request.getMetodoPago()) ? "PENDIENTE_PAGO" : "PENDIENTE");
         pedido.setFecha(System.currentTimeMillis());
 
         db.collection("pedidos").document(pedido.getId()).set(pedido).get();
@@ -119,7 +119,7 @@ public class PedidoService {
     }
 
     public String actualizarEstado(String idPedido, String nuevoEstado) throws Exception {
-        List<String> estadosValidos = List.of("PENDIENTE", "COCINANDO", "REPARTO", "ENTREGADO", "CANCELADO");
+        List<String> estadosValidos = List.of("PENDIENTE_PAGO", "PENDIENTE", "COCINANDO", "REPARTO", "ENTREGADO", "CANCELADO");
         String estadoMayus = nuevoEstado.toUpperCase();
 
         if (!estadosValidos.contains(estadoMayus)) {
