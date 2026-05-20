@@ -172,24 +172,9 @@ public class PedidoService {
         cal.set(Calendar.SECOND, 0);
         cal.set(Calendar.MILLISECOND, 0);
         long comienzoDelDia = cal.getTimeInMillis();
-        return obtenerVentas(comienzoDelDia, null);
-    }
 
-    public Map<String, Object> obtenerVentas(Long desde, Long hasta) throws Exception {
-        long queryDesde;
-        if (desde != null) {
-            queryDesde = desde;
-        } else {
-            Calendar cal = Calendar.getInstance();
-            cal.set(Calendar.HOUR_OF_DAY, 0);
-            cal.set(Calendar.MINUTE, 0);
-            cal.set(Calendar.SECOND, 0);
-            cal.set(Calendar.MILLISECOND, 0);
-            queryDesde = cal.getTimeInMillis();
-        }
-
-        List<Pedido> pedidos = db.collection("pedidos")
-                .whereGreaterThanOrEqualTo("fecha", queryDesde)
+        List<Pedido> pedidosDeHoy = db.collection("pedidos")
+                .whereGreaterThanOrEqualTo("fecha", comienzoDelDia)
                 .get().get().getDocuments()
                 .stream()
                 .map(doc -> doc.toObject(Pedido.class))
@@ -197,12 +182,10 @@ public class PedidoService {
 
         double dineroTotal = 0;
         long pedidosContados = 0;
-        for (Pedido p : pedidos) {
+        for (Pedido p : pedidosDeHoy) {
             if (!"CANCELADO".equals(p.getEstado())) {
-                if (hasta == null || p.getFecha() <= hasta) {
-                    dineroTotal += p.getTotal();
-                    pedidosContados++;
-                }
+                dineroTotal += p.getTotal();
+                pedidosContados++;
             }
         }
 
