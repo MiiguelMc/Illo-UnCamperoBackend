@@ -52,6 +52,19 @@ public class PedidoController {
         return pedidoService.actualizarEstado(id, nuevoEstado);
     }
 
+    @PostMapping("/{id}/cancelar")
+    public String cancelarPedidoCliente(@PathVariable String id,
+                                        Authentication authentication) throws Exception {
+        Pedido pedido = pedidoService.obtenerPorId(id);
+        if (pedido == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Pedido no encontrado");
+        }
+        if (!authentication.getName().equals(pedido.getIdUsuario())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
+        }
+        return pedidoService.actualizarEstado(id, "CANCELADO");
+    }
+
     @GetMapping("/{id}")
     public Pedido obtenerDetalles(@PathVariable String id, Authentication authentication) throws Exception {
         Pedido pedido = pedidoService.obtenerPorId(id);
