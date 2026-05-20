@@ -74,6 +74,13 @@ public class PedidoController {
         return pedidoService.obtenerVentasHoy();
     }
 
+    @GetMapping("/estadisticas/resumen")
+    public Map<String, Object> verVentas(
+            @RequestParam(required = false) Long desde,
+            @RequestParam(required = false) Long hasta) throws Exception {
+        return pedidoService.obtenerVentas(desde, hasta);
+    }
+
     @GetMapping("/estadisticas/productos")
     public List<Map<String, Object>> topProductos(
             @RequestParam(required = false) Long desde,

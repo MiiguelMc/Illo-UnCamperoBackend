@@ -172,17 +172,30 @@ public class PedidoService {
         cal.set(Calendar.SECOND, 0);
         cal.set(Calendar.MILLISECOND, 0);
         long comienzoDelDia = cal.getTimeInMillis();
+        return obtenerVentas(comienzoDelDia, null);
+    }
 
-        List<Pedido> pedidosDeHoy = db.collection("pedidos")
-                .whereGreaterThanOrEqualTo("fecha", comienzoDelDia)
-                .get().get().getDocuments()
+    public Map<String, Object> obtenerVentas(Long desde, Long hasta) throws Exception {
+        var ref = db.collection("pedidos");
+        com.google.cloud.firestore.Query query = ref;
+
+        if (desde != null && hasta != null) {
+            query = ref.whereGreaterThanOrEqualTo("fecha", desde)
+                       .whereLessThanOrEqualTo("fecha", hasta);
+        } else if (desde != null) {
+            query = ref.whereGreaterThanOrEqualTo("fecha", desde);
+        } else if (hasta != null) {
+            query = ref.whereLessThanOrEqualTo("fecha", hasta);
+        }
+
+        List<Pedido> pedidos = query.get().get().getDocuments()
                 .stream()
                 .map(doc -> doc.toObject(Pedido.class))
                 .collect(Collectors.toList());
 
         double dineroTotal = 0;
         long pedidosContados = 0;
-        for (Pedido p : pedidosDeHoy) {
+        for (Pedido p : pedidos) {
             if (!"CANCELADO".equals(p.getEstado())) {
                 dineroTotal += p.getTotal();
                 pedidosContados++;
