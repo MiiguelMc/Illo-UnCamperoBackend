@@ -176,19 +176,21 @@ public class PedidoService {
     }
 
     public Map<String, Object> obtenerVentas(Long desde, Long hasta) throws Exception {
-        var ref = db.collection("pedidos");
-        com.google.cloud.firestore.Query query = ref;
-
-        if (desde != null && hasta != null) {
-            query = ref.whereGreaterThanOrEqualTo("fecha", desde)
-                       .whereLessThanOrEqualTo("fecha", hasta);
-        } else if (desde != null) {
-            query = ref.whereGreaterThanOrEqualTo("fecha", desde);
-        } else if (hasta != null) {
-            query = ref.whereLessThanOrEqualTo("fecha", hasta);
+        long queryDesde;
+        if (desde != null) {
+            queryDesde = desde;
+        } else {
+            Calendar cal = Calendar.getInstance();
+            cal.set(Calendar.HOUR_OF_DAY, 0);
+            cal.set(Calendar.MINUTE, 0);
+            cal.set(Calendar.SECOND, 0);
+            cal.set(Calendar.MILLISECOND, 0);
+            queryDesde = cal.getTimeInMillis();
         }
 
-        List<Pedido> pedidos = query.get().get().getDocuments()
+        List<Pedido> pedidos = db.collection("pedidos")
+                .whereGreaterThanOrEqualTo("fecha", queryDesde)
+                .get().get().getDocuments()
                 .stream()
                 .map(doc -> doc.toObject(Pedido.class))
                 .collect(Collectors.toList());
@@ -197,8 +199,10 @@ public class PedidoService {
         long pedidosContados = 0;
         for (Pedido p : pedidos) {
             if (!"CANCELADO".equals(p.getEstado())) {
-                dineroTotal += p.getTotal();
-                pedidosContados++;
+                if (hasta == null || p.getFecha() <= hasta) {
+                    dineroTotal += p.getTotal();
+                    pedidosContados++;
+                }
             }
         }
 
