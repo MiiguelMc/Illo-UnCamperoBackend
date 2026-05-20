@@ -70,15 +70,13 @@ public class PedidoController {
     }
 
     @GetMapping("/estadisticas/hoy")
-    public Map<String, Object> verVentasHoy() throws Exception {
-        return pedidoService.obtenerVentasHoy();
-    }
-
-    @GetMapping("/estadisticas/resumen")
-    public Map<String, Object> verVentas(
+    public Map<String, Object> verVentasHoy(
             @RequestParam(required = false) Long desde,
             @RequestParam(required = false) Long hasta) throws Exception {
-        return pedidoService.obtenerVentas(desde, hasta);
+        if (desde != null || hasta != null) {
+            return pedidoService.obtenerVentas(desde, hasta);
+        }
+        return pedidoService.obtenerVentasHoy();
     }
 
     @GetMapping("/estadisticas/productos")
