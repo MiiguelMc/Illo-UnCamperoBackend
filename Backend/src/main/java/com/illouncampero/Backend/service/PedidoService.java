@@ -132,7 +132,9 @@ public class PedidoService {
         }
 
         String estadoActual = pedido.getEstado() != null ? pedido.getEstado().toUpperCase() : "";
-        if ("CANCELADO".equals(estadoMayus) && !"PENDIENTE".equals(estadoActual)) {
+        if ("CANCELADO".equals(estadoMayus)
+                && !"PENDIENTE".equals(estadoActual)
+                && !"PENDIENTE_PAGO".equals(estadoActual)) {
             throw new IllegalStateException(
                     "No se puede cancelar un pedido que ya esta en preparacion, reparto, entregado o cancelado."
             );

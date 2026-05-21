@@ -65,6 +65,22 @@ public class PedidoController {
         return pedidoService.actualizarEstado(id, "CANCELADO");
     }
 
+    @PostMapping("/{id}/confirmar-pago")
+    public String confirmarPagoCliente(@PathVariable String id,
+                                       Authentication authentication) throws Exception {
+        Pedido pedido = pedidoService.obtenerPorId(id);
+        if (pedido == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Pedido no encontrado");
+        }
+        if (!authentication.getName().equals(pedido.getIdUsuario())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado");
+        }
+        if (!"PENDIENTE_PAGO".equals(pedido.getEstado())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El pedido no está pendiente de pago");
+        }
+        return pedidoService.actualizarEstado(id, "PENDIENTE");
+    }
+
     @GetMapping("/{id}")
     public Pedido obtenerDetalles(@PathVariable String id, Authentication authentication) throws Exception {
         Pedido pedido = pedidoService.obtenerPorId(id);

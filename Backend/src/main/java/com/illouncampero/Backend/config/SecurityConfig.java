@@ -77,8 +77,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/pedidos/todos").hasAnyRole("ADMIN", "COCINA")
                 .requestMatchers(HttpMethod.GET, "/api/pedidos/estadisticas/**").hasAnyRole("ADMIN", "COCINA")
                 .requestMatchers(HttpMethod.PATCH, "/api/pedidos/*/estado").hasAnyRole("ADMIN", "COCINA")
-                // Cancelación por el cliente (propietario del pedido)
+                // Cancelación y confirmación de pago por el cliente
                 .requestMatchers(HttpMethod.POST, "/api/pedidos/*/cancelar").authenticated()
+                .requestMatchers(HttpMethod.POST, "/api/pedidos/*/confirmar-pago").authenticated()
                 // Autenticado
                 .requestMatchers(HttpMethod.DELETE, "/api/usuarios/cuenta").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/resenas").authenticated()
