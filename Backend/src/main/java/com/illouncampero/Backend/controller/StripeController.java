@@ -30,7 +30,7 @@ public class StripeController {
     @PostMapping("/crear-intent")
     public ResponseEntity<Map<String, String>> crearIntent(
             @RequestBody Map<String, Object> body,
-            Authentication authentication) throws Exception {
+            Authentication authentication) {
 
         String pedidoId = (String) body.get("pedidoId");
         if (pedidoId == null || pedidoId.isBlank()) {
@@ -47,8 +47,14 @@ public class StripeController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Acceso denegado"));
         }
 
-        String clientSecret = stripeService.crearIntentPago(pedido.getTotal(), pedidoId);
-        return ResponseEntity.ok(Map.of("clientSecret", clientSecret));
+        try {
+            String clientSecret = stripeService.crearIntentPago(pedido.getTotal(), pedidoId);
+            return ResponseEntity.ok(Map.of("clientSecret", clientSecret));
+        } catch (Exception e) {
+            System.err.println("Error al crear PaymentIntent: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Error al procesar el pago"));
+        }
     }
 
     @PostMapping("/webhook")
