@@ -37,17 +37,17 @@ public class StripeController {
             return ResponseEntity.badRequest().body(Map.of("error", "pedidoId requerido"));
         }
 
-        Pedido pedido = pedidoService.obtenerPorId(pedidoId);
-        if (pedido == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Pedido no encontrado"));
-        }
-
-        String uidAutenticado = authentication.getName();
-        if (!uidAutenticado.equals(pedido.getIdUsuario())) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Acceso denegado"));
-        }
-
         try {
+            Pedido pedido = pedidoService.obtenerPorId(pedidoId);
+            if (pedido == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Pedido no encontrado"));
+            }
+
+            String uidAutenticado = authentication.getName();
+            if (!uidAutenticado.equals(pedido.getIdUsuario())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Acceso denegado"));
+            }
+
             String clientSecret = stripeService.crearIntentPago(pedido.getTotal(), pedidoId);
             return ResponseEntity.ok(Map.of("clientSecret", clientSecret));
         } catch (Exception e) {
