@@ -29,7 +29,7 @@ public class PedidoController {
         return Map.of("id", id);
     }
 
-    @GetMapping("/activos")
+    @getMapping("/activos")
     public List<Pedido> listarActivos() throws Exception {
         return pedidoService.obtenerPedidosActivos();
     }

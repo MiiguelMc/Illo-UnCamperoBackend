@@ -91,7 +91,7 @@ public class PedidoService {
 
     public List<Pedido> obtenerPedidosActivos() throws Exception {
         return db.collection("pedidos")
-                .whereIn("estado", List.of("PENDIENTE", "COCINANDO", "REPARTO"))
+                .whereIn("estado", List.of("PENDIENTE_PAGO", "PENDIENTE", "COCINANDO", "REPARTO")) // Añadido PENDIENTE_PAGO
                 .get().get().getDocuments()
                 .stream()
                 .map(doc -> doc.toObject(Pedido.class))
