@@ -31,6 +31,7 @@ public class HealthController {
                 JsonObject o = JsonParser.parseString(json).getAsJsonObject();
                 body.put("project_id", o.has("project_id") ? o.get("project_id").getAsString() : "(falta)");
                 body.put("client_email", o.has("client_email") ? o.get("client_email").getAsString() : "(falta)");
+                body.put("private_key_id", o.has("private_key_id") ? o.get("private_key_id").getAsString() : "(falta)");
             }
         } catch (Exception e) {
             body.put("cred_error", e.getClass().getSimpleName() + ": " + e.getMessage());
