@@ -66,6 +66,7 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers("/actuator/**").denyAll()
                 // API pública
+                .requestMatchers(HttpMethod.GET, "/api/health").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/productos/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/usuarios/registro").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/tienda/estado").permitAll()

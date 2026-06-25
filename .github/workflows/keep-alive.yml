@@ -1,0 +1,22 @@
+name: Keep backend awake
+
+# Mantiene despierto el backend en Render (plan free), que duerme tras ~15 min
+# sin tráfico. Hace un ping al endpoint ligero /api/health cada 10 minutos.
+#
+# Nota: el cron de GitHub Actions no es puntual (puede retrasarse 10-15 min en
+# horas de carga), así que de vez en cuando se le escapará. Es un "casi siempre
+# despierto" gratis, no una garantía.
+
+on:
+  schedule:
+    - cron: '*/10 * * * *' # cada 10 minutos
+  workflow_dispatch: {} # permite lanzarlo a mano desde la pestaña Actions
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping /api/health
+        run: |
+          curl -fsS --retry 3 --retry-delay 5 --max-time 90 \
+            https://illo-uncamperobackend.onrender.com/api/health
