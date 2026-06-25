@@ -1,62 +1,55 @@
 package com.illouncampero.Backend.controller;
 
-import com.google.cloud.firestore.DocumentSnapshot;
-import com.google.cloud.firestore.Firestore;
 import com.illouncampero.Backend.model.Cupon;
+import com.illouncampero.Backend.repository.CuponRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 
 @RestController
 @RequestMapping("/api/cupones")
 public class CuponController {
 
-    private final Firestore db;
+    private final CuponRepository cuponRepository;
 
-    public CuponController(Firestore db) {
-        this.db = db;
+    public CuponController(CuponRepository cuponRepository) {
+        this.cuponRepository = cuponRepository;
     }
 
     @PostMapping("/validar")
-    public ResponseEntity<Map<String, Object>> validarCupon(@RequestBody Map<String, String> body)
-            throws ExecutionException, InterruptedException {
-
+    public ResponseEntity<Map<String, Object>> validarCupon(@RequestBody Map<String, String> body) {
         String codigo = body.get("codigo");
         if (codigo == null || codigo.isBlank()) {
             return ResponseEntity.badRequest().build();
         }
 
-        var docs = db.collection("cupones")
-                .whereEqualTo("codigo", codigo.toUpperCase().trim())
-                .whereEqualTo("activo", true)
-                .get().get().getDocuments();
+        Optional<Cupon> cuponOpt = cuponRepository.findByCodigoAndActivoTrue(codigo.toUpperCase().trim());
 
-        if (docs.isEmpty()) {
+        if (cuponOpt.isEmpty()) {
             Map<String, Object> error = new HashMap<>();
             error.put("valido", false);
             error.put("mensaje", "Cupón no válido o expirado.");
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
         }
 
-        DocumentSnapshot doc = docs.get(0);
+        Cupon cupon = cuponOpt.get();
         Map<String, Object> respuesta = new HashMap<>();
         respuesta.put("valido", true);
-        respuesta.put("descuento", doc.getDouble("descuento"));
-        respuesta.put("descripcion", doc.getString("descripcion"));
-        respuesta.put("codigo", doc.getString("codigo"));
+        respuesta.put("descuento", cupon.getDescuento());
+        respuesta.put("descripcion", cupon.getDescripcion());
+        respuesta.put("codigo", cupon.getCodigo());
 
         return ResponseEntity.ok(respuesta);
     }
 
     @PostMapping
-    public ResponseEntity<String> crearCupon(@RequestBody Cupon cupon)
-            throws ExecutionException, InterruptedException {
-
+    public ResponseEntity<String> crearCupon(@RequestBody Cupon cupon) {
         if (cupon.getCodigo() == null || cupon.getCodigo().isBlank()) {
             return ResponseEntity.badRequest().body("El código del cupón es obligatorio.");
         }
@@ -64,39 +57,29 @@ public class CuponController {
             return ResponseEntity.badRequest().body("El descuento debe estar entre 1 y 100.");
         }
 
+        cupon.setId(UUID.randomUUID().toString());
         cupon.setCodigo(cupon.getCodigo().toUpperCase().trim());
+        cupon.setDescripcion(((int) cupon.getDescuento()) + "% de descuento");
+        cupon.setActivo(true);
 
-        String id = UUID.randomUUID().toString();
-        Map<String, Object> datos = new HashMap<>();
-        datos.put("codigo", cupon.getCodigo());
-        datos.put("descuento", cupon.getDescuento());
-        datos.put("descripcion", cupon.getDescuento() + "% de descuento");
-        datos.put("activo", true);
-
-        db.collection("cupones").document(id).set(datos).get();
+        cuponRepository.save(cupon);
         return ResponseEntity.ok("Cupón '" + cupon.getCodigo() + "' creado con éxito.");
     }
 
     @PatchMapping("/{id}/desactivar")
-    public ResponseEntity<String> desactivarCupon(@PathVariable String id)
-            throws ExecutionException, InterruptedException {
-
-        var doc = db.collection("cupones").document(id).get().get();
-        if (!doc.exists()) {
+    public ResponseEntity<String> desactivarCupon(@PathVariable String id) {
+        Optional<Cupon> cuponOpt = cuponRepository.findById(id);
+        if (cuponOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
-        db.collection("cupones").document(id).update("activo", false).get();
+        Cupon cupon = cuponOpt.get();
+        cupon.setActivo(false);
+        cuponRepository.save(cupon);
         return ResponseEntity.ok("Cupón desactivado.");
     }
 
     @GetMapping
-    public ResponseEntity<?> listarCupones() throws ExecutionException, InterruptedException {
-        var docs = db.collection("cupones").limit(500).get().get().getDocuments();
-        var lista = docs.stream().map(doc -> {
-            Map<String, Object> c = new HashMap<>(doc.getData());
-            c.put("id", doc.getId());
-            return c;
-        }).toList();
-        return ResponseEntity.ok(lista);
+    public ResponseEntity<List<Cupon>> listarCupones() {
+        return ResponseEntity.ok(cuponRepository.findAll());
     }
 }

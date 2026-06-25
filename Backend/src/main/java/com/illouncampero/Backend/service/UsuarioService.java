@@ -1,50 +1,49 @@
 package com.illouncampero.Backend.service;
 
-import com.google.cloud.firestore.DocumentSnapshot;
-import com.google.cloud.firestore.Firestore;
-import com.google.cloud.firestore.SetOptions;
-import com.google.firebase.auth.FirebaseAuth;
 import com.illouncampero.Backend.model.Usuario;
+import com.illouncampero.Backend.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
 
 @Service
 public class UsuarioService {
 
-    private final Firestore db;
+    private final UsuarioRepository usuarioRepository;
+    private final SupabaseAdminService supabaseAdminService;
 
-    public UsuarioService(Firestore db) {
-        this.db = db;
+    public UsuarioService(UsuarioRepository usuarioRepository,
+                          SupabaseAdminService supabaseAdminService) {
+        this.usuarioRepository = usuarioRepository;
+        this.supabaseAdminService = supabaseAdminService;
     }
 
-    public String guardarPerfil(Usuario usuario) throws Exception {
+    public String guardarPerfil(Usuario usuario) {
         if (usuario.getUid() == null || usuario.getUid().isEmpty()) {
             throw new IllegalArgumentException("El UID del usuario no puede estar vacío");
         }
 
-        db.collection("usuarios")
-                .document(usuario.getUid())
-                .set(usuario, SetOptions.merge())
-                .get();
+        // Merge: conserva el rol existente si la peticion no lo trae.
+        Usuario existente = usuarioRepository.findById(usuario.getUid()).orElse(null);
+        if (existente != null && (usuario.getRol() == null || usuario.getRol().isEmpty())) {
+            usuario.setRol(existente.getRol());
+        }
+        if (usuario.getRol() == null || usuario.getRol().isEmpty()) {
+            usuario.setRol("CLIENTE");
+        }
 
+        usuarioRepository.save(usuario);
         return "Perfil actualizado con éxito";
     }
 
-    public String registrarPerfil(Usuario usuario) throws Exception {
+    public String registrarPerfil(Usuario usuario) {
         return guardarPerfil(usuario);
     }
 
-    public Usuario obtenerPorUid(String uid) throws Exception {
-        DocumentSnapshot doc = db.collection("usuarios").document(uid).get().get();
-        if (doc.exists()) {
-            Usuario u = doc.toObject(Usuario.class);
-            if (u != null) u.setUid(doc.getId());
-            return u;
-        }
-        return null;
+    public Usuario obtenerPorUid(String uid) {
+        return usuarioRepository.findById(uid).orElse(null);
     }
 
     public void eliminarCuenta(String uid) throws Exception {
-        FirebaseAuth.getInstance().deleteUser(uid);
-        db.collection("usuarios").document(uid).delete().get();
+        supabaseAdminService.deleteUser(uid);
+        usuarioRepository.deleteById(uid);
     }
 }

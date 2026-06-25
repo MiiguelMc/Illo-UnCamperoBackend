@@ -1,5 +1,9 @@
 package com.illouncampero.Backend.model;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -9,7 +13,13 @@ import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
+@Entity
+@Table(name = "usuarios")
 public class Usuario {
+
+    // El id es el "sub" (uuid en formato string) del usuario de Supabase Auth.
+    @Id
+    @Column(name = "id")
     private String uid;
 
     @NotBlank(message = "El nombre es obligatorio")

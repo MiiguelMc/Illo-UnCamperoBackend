@@ -1,31 +1,37 @@
 package com.illouncampero.Backend.controller;
 
-import com.google.cloud.firestore.DocumentSnapshot;
-import com.google.cloud.firestore.Firestore;
-import com.google.cloud.firestore.WriteBatch;
+import com.illouncampero.Backend.model.Pedido;
 import com.illouncampero.Backend.model.Resena;
+import com.illouncampero.Backend.model.Usuario;
+import com.illouncampero.Backend.repository.PedidoRepository;
+import com.illouncampero.Backend.repository.ResenaRepository;
+import com.illouncampero.Backend.repository.UsuarioRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
-import java.util.concurrent.ExecutionException;
 
 @RestController
 @RequestMapping("/api/resenas")
 public class ResenaController {
 
-    private final Firestore db;
+    private final ResenaRepository resenaRepository;
+    private final PedidoRepository pedidoRepository;
+    private final UsuarioRepository usuarioRepository;
 
-    public ResenaController(Firestore db) {
-        this.db = db;
+    public ResenaController(ResenaRepository resenaRepository,
+                            PedidoRepository pedidoRepository,
+                            UsuarioRepository usuarioRepository) {
+        this.resenaRepository = resenaRepository;
+        this.pedidoRepository = pedidoRepository;
+        this.usuarioRepository = usuarioRepository;
     }
 
     @PostMapping
-    public ResponseEntity<String> crearResena(
-            @RequestBody Resena resena,
-            Authentication auth) throws ExecutionException, InterruptedException {
-
+    @Transactional
+    public ResponseEntity<String> crearResena(@RequestBody Resena resena, Authentication auth) {
         String uid = auth.getName();
         resena.setIdUsuario(uid);
         resena.setFecha(System.currentTimeMillis());
@@ -37,63 +43,58 @@ public class ResenaController {
             return ResponseEntity.badRequest().body("El ID del pedido es obligatorio.");
         }
 
-        var pedidoDoc = db.collection("pedidos").document(resena.getIdPedido()).get().get();
-        if (!pedidoDoc.exists()) {
+        Pedido pedido = pedidoRepository.findById(resena.getIdPedido()).orElse(null);
+        if (pedido == null) {
             return ResponseEntity.badRequest().body("El pedido no existe.");
         }
 
-        String estadoPedido = pedidoDoc.getString("estado");
-        if (!"ENTREGADO".equals(estadoPedido)) {
+        if (!"ENTREGADO".equals(pedido.getEstado())) {
             return ResponseEntity.badRequest().body("Solo puedes valorar pedidos entregados.");
         }
 
-        String idUsuarioPedido = pedidoDoc.getString("idUsuario");
-        if (!uid.equals(idUsuarioPedido)) {
+        if (!uid.equals(pedido.getIdUsuario())) {
             return ResponseEntity.status(403).body("No puedes valorar un pedido que no es tuyo.");
         }
 
-        Boolean yaValorado = pedidoDoc.getBoolean("valorado");
-        if (Boolean.TRUE.equals(yaValorado)) {
+        if (pedido.isValorado()) {
             return ResponseEntity.badRequest().body("Este pedido ya ha sido valorado.");
         }
 
-        String id = UUID.randomUUID().toString();
-        Map<String, Object> datos = new HashMap<>();
-        datos.put("id", id);
-        datos.put("idPedido", resena.getIdPedido());
-        datos.put("idUsuario", uid);
-        datos.put("puntuacion", resena.getPuntuacion());
-        datos.put("comentario", resena.getComentario() != null ? resena.getComentario() : "");
-        datos.put("fecha", resena.getFecha());
+        resena.setId(UUID.randomUUID().toString());
+        if (resena.getComentario() == null) {
+            resena.setComentario("");
+        }
+        resenaRepository.save(resena);
 
-        WriteBatch batch = db.batch();
-        batch.set(db.collection("resenas").document(id), datos);
-        batch.update(db.collection("pedidos").document(resena.getIdPedido()), "valorado", true);
-        batch.commit().get();
+        pedido.setValorado(true);
+        pedidoRepository.save(pedido);
 
         return ResponseEntity.ok("Reseña guardada. Gracias por tu opinión.");
     }
 
     @GetMapping
-    public ResponseEntity<List<Map<String, Object>>> listarResenas() throws ExecutionException, InterruptedException {
-        var docs = db.collection("resenas")
-                .orderBy("fecha", com.google.cloud.firestore.Query.Direction.DESCENDING)
-                .limit(50)
-                .get().get().getDocuments();
+    public ResponseEntity<List<Map<String, Object>>> listarResenas() {
+        List<Resena> resenas = resenaRepository.findTop50ByOrderByFechaDesc();
 
         List<Map<String, Object>> lista = new ArrayList<>();
-        for (var doc : docs) {
-            Map<String, Object> r = new HashMap<>(doc.getData());
-            try {
-                String idUsuario = (String) r.get("idUsuario");
-                var userDoc = db.collection("usuarios").document(idUsuario).get().get();
-                if (userDoc.exists()) {
-                    r.put("nombreUsuario", userDoc.getString("nombre"));
+        for (Resena r : resenas) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", r.getId());
+            m.put("idPedido", r.getIdPedido());
+            m.put("idUsuario", r.getIdUsuario());
+            m.put("puntuacion", r.getPuntuacion());
+            m.put("comentario", r.getComentario());
+            m.put("fecha", r.getFecha());
+
+            String nombreUsuario = "Cliente";
+            if (r.getIdUsuario() != null) {
+                Usuario u = usuarioRepository.findById(r.getIdUsuario()).orElse(null);
+                if (u != null && u.getNombre() != null) {
+                    nombreUsuario = u.getNombre();
                 }
-            } catch (Exception e) {
-                r.put("nombreUsuario", "Cliente");
             }
-            lista.add(r);
+            m.put("nombreUsuario", nombreUsuario);
+            lista.add(m);
         }
         return ResponseEntity.ok(lista);
     }

@@ -1,13 +1,15 @@
 package com.illouncampero.Backend.service;
 
-import com.google.cloud.firestore.Firestore;
-import com.google.cloud.firestore.Query;
 import com.illouncampero.Backend.model.LineaPedido;
 import com.illouncampero.Backend.model.Pedido;
 import com.illouncampero.Backend.model.Producto;
+import com.illouncampero.Backend.model.PushSubscription;
 import com.illouncampero.Backend.model.dto.CrearPedidoRequest;
 import com.illouncampero.Backend.model.dto.LineaPedidoRequest;
+import com.illouncampero.Backend.repository.PedidoRepository;
+import com.illouncampero.Backend.repository.PushSubscriptionRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -15,18 +17,23 @@ import java.util.stream.Collectors;
 @Service
 public class PedidoService {
 
-    private final Firestore db;
+    private final PedidoRepository pedidoRepository;
     private final ProductoService productoService;
     private final NotificacionService notificacionService;
+    private final PushSubscriptionRepository pushSubscriptionRepository;
 
-    public PedidoService(Firestore db, ProductoService productoService,
-                         NotificacionService notificacionService) {
-        this.db = db;
+    public PedidoService(PedidoRepository pedidoRepository,
+                         ProductoService productoService,
+                         NotificacionService notificacionService,
+                         PushSubscriptionRepository pushSubscriptionRepository) {
+        this.pedidoRepository = pedidoRepository;
         this.productoService = productoService;
         this.notificacionService = notificacionService;
+        this.pushSubscriptionRepository = pushSubscriptionRepository;
     }
 
-    public String guardarNuevoPedido(CrearPedidoRequest request, String uid) throws Exception {
+    @Transactional
+    public String guardarNuevoPedido(CrearPedidoRequest request, String uid) {
         Pedido pedido = new Pedido();
         pedido.setIdUsuario(uid);
         pedido.setNombreCliente(request.getNombreCliente());
@@ -72,53 +79,41 @@ public class PedidoService {
         pedido.setEstado("TARJETA".equals(request.getMetodoPago()) ? "PENDIENTE_PAGO" : "PENDIENTE");
         pedido.setFecha(System.currentTimeMillis());
 
-        db.collection("pedidos").document(pedido.getId()).set(pedido).get();
+        pedidoRepository.save(pedido);
 
         return pedido.getId();
     }
 
-    public List<Pedido> obtenerPedidosPorUsuario(String uid) throws Exception {
-        // Sin orderBy para evitar requerir índice compuesto en Firestore.
-        // La ordenación se hace en Java.
-        return db.collection("pedidos")
-                .whereEqualTo("idUsuario", uid)
-                .get().get().getDocuments()
+    public List<Pedido> obtenerPedidosPorUsuario(String uid) {
+        return pedidoRepository.findByIdUsuario(uid)
                 .stream()
-                .map(doc -> doc.toObject(Pedido.class))
                 .sorted((a, b) -> Long.compare(b.getFecha(), a.getFecha()))
                 .collect(Collectors.toList());
     }
 
-    public List<Pedido> obtenerPedidosActivos() throws Exception {
-        return db.collection("pedidos")
-                .whereIn("estado", List.of("PENDIENTE_PAGO", "PENDIENTE", "COCINANDO", "REPARTO")) // Añadido PENDIENTE_PAGO
-                .get().get().getDocuments()
-                .stream()
-                .map(doc -> doc.toObject(Pedido.class))
-                .collect(Collectors.toList());
+    public List<Pedido> obtenerPedidosActivos() {
+        return pedidoRepository.findByEstadoIn(
+                List.of("PENDIENTE_PAGO", "PENDIENTE", "COCINANDO", "REPARTO"));
     }
 
-    public List<Pedido> obtenerTodosPedidos(Long desde, Long hasta) throws Exception {
-        var ref = db.collection("pedidos");
-        com.google.cloud.firestore.Query query = ref;
-
+    public List<Pedido> obtenerTodosPedidos(Long desde, Long hasta) {
+        List<Pedido> pedidos;
         if (desde != null && hasta != null) {
-            query = ref.whereGreaterThanOrEqualTo("fecha", desde)
-                       .whereLessThanOrEqualTo("fecha", hasta);
+            pedidos = pedidoRepository.findByFechaGreaterThanEqualAndFechaLessThanEqual(desde, hasta);
         } else if (desde != null) {
-            query = ref.whereGreaterThanOrEqualTo("fecha", desde);
+            pedidos = pedidoRepository.findByFechaGreaterThanEqual(desde);
         } else if (hasta != null) {
-            query = ref.whereLessThanOrEqualTo("fecha", hasta);
+            pedidos = pedidoRepository.findByFechaLessThanEqual(hasta);
+        } else {
+            pedidos = pedidoRepository.findAll();
         }
-
-        return query.get().get().getDocuments()
-                .stream()
-                .map(doc -> doc.toObject(Pedido.class))
+        return pedidos.stream()
                 .sorted((a, b) -> Long.compare(b.getFecha(), a.getFecha()))
                 .collect(Collectors.toList());
     }
 
-    public String actualizarEstado(String idPedido, String nuevoEstado) throws Exception {
+    @Transactional
+    public String actualizarEstado(String idPedido, String nuevoEstado) {
         List<String> estadosValidos = List.of("PENDIENTE_PAGO", "PENDIENTE", "COCINANDO", "REPARTO", "ENTREGADO", "CANCELADO");
         String estadoMayus = nuevoEstado.toUpperCase();
 
@@ -144,30 +139,28 @@ public class PedidoService {
             return "Pedido " + idPedido + " ya esta en " + estadoMayus;
         }
 
-        db.collection("pedidos").document(idPedido).update("estado", estadoMayus).get();
+        pedido.setEstado(estadoMayus);
+        pedidoRepository.save(pedido);
 
-        if (pedido != null && pedido.getIdUsuario() != null) {
-            var usuarioDoc = db.collection("usuarios").document(pedido.getIdUsuario()).get().get();
-            if (usuarioDoc.exists()) {
-                String fcmToken = usuarioDoc.getString("fcmToken");
-                if (fcmToken != null && !fcmToken.isEmpty()) {
-                    notificacionService.enviarNotificacion(
-                            fcmToken,
-                            obtenerTituloNotificacion(estadoMayus),
-                            obtenerCuerpoNotificacion(estadoMayus, idPedido)
-                    );
-                }
+        if (pedido.getIdUsuario() != null) {
+            List<PushSubscription> subs = pushSubscriptionRepository.findByUsuarioId(pedido.getIdUsuario());
+            for (PushSubscription sub : subs) {
+                notificacionService.enviarNotificacion(
+                        sub,
+                        obtenerTituloNotificacion(estadoMayus),
+                        obtenerCuerpoNotificacion(estadoMayus, idPedido)
+                );
             }
         }
 
         return "Pedido " + idPedido + " actualizado a " + estadoMayus;
     }
 
-    public Pedido obtenerPorId(String id) throws Exception {
-        return db.collection("pedidos").document(id).get().get().toObject(Pedido.class);
+    public Pedido obtenerPorId(String id) {
+        return pedidoRepository.findById(id).orElse(null);
     }
 
-    public Map<String, Object> obtenerVentasHoy() throws Exception {
+    public Map<String, Object> obtenerVentasHoy() {
         Calendar cal = Calendar.getInstance();
         cal.set(Calendar.HOUR_OF_DAY, 0);
         cal.set(Calendar.MINUTE, 0);
@@ -175,12 +168,7 @@ public class PedidoService {
         cal.set(Calendar.MILLISECOND, 0);
         long comienzoDelDia = cal.getTimeInMillis();
 
-        List<Pedido> pedidosDeHoy = db.collection("pedidos")
-                .whereGreaterThanOrEqualTo("fecha", comienzoDelDia)
-                .get().get().getDocuments()
-                .stream()
-                .map(doc -> doc.toObject(Pedido.class))
-                .collect(Collectors.toList());
+        List<Pedido> pedidosDeHoy = pedidoRepository.findByFechaGreaterThanEqual(comienzoDelDia);
 
         double dineroTotal = 0;
         long pedidosContados = 0;
@@ -197,29 +185,15 @@ public class PedidoService {
         return estadisticas;
     }
 
-    public List<Map<String, Object>> obtenerTopProductos(Long desde, Long hasta) throws Exception {
-        var ref = db.collection("pedidos");
-        com.google.cloud.firestore.Query query = ref;
-
-        if (desde != null && hasta != null) {
-            query = ref.whereGreaterThanOrEqualTo("fecha", desde)
-                       .whereLessThanOrEqualTo("fecha", hasta);
-        } else if (desde != null) {
-            query = ref.whereGreaterThanOrEqualTo("fecha", desde);
-        } else if (hasta != null) {
-            query = ref.whereLessThanOrEqualTo("fecha", hasta);
-        }
-
-        List<Pedido> pedidos = query.get().get().getDocuments()
-                .stream()
-                .map(doc -> doc.toObject(Pedido.class))
+    public List<Map<String, Object>> obtenerTopProductos(Long desde, Long hasta) {
+        List<Pedido> pedidos = obtenerTodosPedidos(desde, hasta).stream()
                 .filter(p -> !"CANCELADO".equals(p.getEstado()))
                 .collect(Collectors.toList());
 
         Map<String, Long> conteo = new HashMap<>();
         for (Pedido p : pedidos) {
             if (p.getProductos() != null) {
-                for (var linea : p.getProductos()) {
+                for (LineaPedido linea : p.getProductos()) {
                     conteo.merge(linea.getNombre(), (long) linea.getCantidad(), Long::sum);
                 }
             }

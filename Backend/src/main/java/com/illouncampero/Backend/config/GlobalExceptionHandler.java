@@ -50,11 +50,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleGeneric(Exception e) {
         log.error("Error no controlado", e);
-        // DEBUG TEMPORAL: exponer la causa para re-diagnosticar Firestore. Revertir despues.
         return ResponseEntity.internalServerError()
-                .body(Map.of(
-                        "error", "Error interno del servidor",
-                        "debug", e.getClass().getName() + ": " + e.getMessage()
-                ));
+                .body(Map.of("error", "Error interno del servidor"));
     }
 }

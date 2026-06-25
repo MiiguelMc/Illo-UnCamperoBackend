@@ -1,21 +1,25 @@
 package com.illouncampero.Backend.service;
 
 import com.illouncampero.Backend.model.Usuario;
+import com.illouncampero.Backend.repository.UsuarioRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class UsuarioServiceTest {
 
-    @Mock private com.google.cloud.firestore.Firestore db;
+    @Mock private UsuarioRepository usuarioRepository;
+    @Mock private SupabaseAdminService supabaseAdminService;
 
     @Test
     void guardarPerfilSinUidLanzaExcepcion() {
-        UsuarioService service = new UsuarioService(db);
+        UsuarioService service = new UsuarioService(usuarioRepository, supabaseAdminService);
 
         Usuario usuario = new Usuario();
         usuario.setUid(null);
@@ -24,20 +28,22 @@ class UsuarioServiceTest {
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
                 () -> service.guardarPerfil(usuario));
         assertTrue(ex.getMessage().contains("UID"));
+        verify(usuarioRepository, never()).save(any());
     }
 
     @Test
-    void guardarPerfilConUidVacioLanzaExcepcion() {
-        UsuarioService service = new UsuarioService(db);
+    void guardarPerfilNuevoAsignaRolClientePorDefecto() {
+        when(usuarioRepository.findById("uid-1")).thenReturn(java.util.Optional.empty());
+        UsuarioService service = new UsuarioService(usuarioRepository, supabaseAdminService);
 
         Usuario usuario = new Usuario();
-        usuario.setUid("   ");
+        usuario.setUid("uid-1");
+        usuario.setNombre("Test");
+        usuario.setEmail("test@test.com");
 
-        // El UID vacío (después de trim) también debe lanzar
-        // El servicio comprueba isEmpty(), y "   ".isEmpty() = false,
-        // así que se podría mejorar. Este test documenta el comportamiento actual.
-        // Con UID en blanco el servicio intentará operar en Firestore —
-        // en tests sin Firestore real dará NullPointerException.
-        assertNotNull(usuario.getUid());
+        service.guardarPerfil(usuario);
+
+        assertEquals("CLIENTE", usuario.getRol());
+        verify(usuarioRepository).save(usuario);
     }
 }

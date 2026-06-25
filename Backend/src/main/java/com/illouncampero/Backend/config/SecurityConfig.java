@@ -1,6 +1,7 @@
 package com.illouncampero.Backend.config;
 
-import com.google.cloud.firestore.Firestore;
+import com.illouncampero.Backend.repository.UsuarioRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -14,27 +15,36 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private final Firestore db;
+    private final UsuarioRepository usuarioRepository;
+    private final String supabaseUrl;
+    private final String supabaseAnonKey;
+    private final List<String> allowedOrigins;
 
-    public SecurityConfig(Firestore db) {
-        this.db = db;
+    public SecurityConfig(
+            UsuarioRepository usuarioRepository,
+            @Value("${supabase.url}") String supabaseUrl,
+            @Value("${supabase.anon-key}") String supabaseAnonKey,
+            @Value("${app.cors.allowed-origins:http://localhost:4200,http://127.0.0.1:4200}") String allowedOrigins) {
+        this.usuarioRepository = usuarioRepository;
+        this.supabaseUrl = supabaseUrl;
+        this.supabaseAnonKey = supabaseAnonKey;
+        this.allowedOrigins = Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
     }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of(
-            "http://localhost:4200",
-            "http://127.0.0.1:4200",
-            "https://illo-uncampero.web.app",
-            "https://illo-uncampero.firebaseapp.com"
-        ));
+        config.setAllowedOrigins(allowedOrigins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
@@ -52,7 +62,6 @@ public class SecurityConfig {
                 .referrerPolicy(ref -> ref
                     .policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
                 )
-                // permissionsPolicy(Customizer) está deprecado en Spring Security 6.x
                 .addHeaderWriter(new StaticHeadersWriter(
                     "Permissions-Policy", "camera=(), microphone=(), geolocation=()"
                 ))
@@ -71,6 +80,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/usuarios/registro").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/tienda/estado").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/resenas").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/push/public-key").permitAll()
                 // Solo ADMIN
                 .requestMatchers(HttpMethod.GET, "/api/cloudinary/firma").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/productos/**").hasRole("ADMIN")
@@ -88,6 +98,9 @@ public class SecurityConfig {
                 // Cancelación y confirmación de pago por el cliente
                 .requestMatchers(HttpMethod.POST, "/api/pedidos/*/cancelar").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/pedidos/*/confirmar-pago").authenticated()
+                // Web Push (suscripcion del navegador)
+                .requestMatchers(HttpMethod.POST, "/api/push/subscribe").authenticated()
+                .requestMatchers(HttpMethod.POST, "/api/push/unsubscribe").authenticated()
                 // Autenticado
                 .requestMatchers(HttpMethod.DELETE, "/api/usuarios/cuenta").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/resenas").authenticated()
@@ -98,7 +111,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/usuarios/**").authenticated()
                 .anyRequest().authenticated()
             )
-            .addFilterBefore(new FirebaseFilter(db), UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(new SupabaseJwtFilter(usuarioRepository, supabaseUrl, supabaseAnonKey),
+                             UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

@@ -1,10 +1,10 @@
 package com.illouncampero.Backend.service;
 
-import com.google.api.core.ApiFuture;
-import com.google.cloud.firestore.*;
 import com.illouncampero.Backend.model.Producto;
 import com.illouncampero.Backend.model.dto.CrearPedidoRequest;
 import com.illouncampero.Backend.model.dto.LineaPedidoRequest;
+import com.illouncampero.Backend.repository.PedidoRepository;
+import com.illouncampero.Backend.repository.PushSubscriptionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -12,67 +12,62 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class PedidoServiceTest {
 
-    @Mock private Firestore db;
+    @Mock private PedidoRepository pedidoRepository;
     @Mock private ProductoService productoService;
     @Mock private NotificacionService notificacionService;
-    @Mock private CollectionReference coleccionPedidos;
-    @Mock private DocumentReference docRef;
-    @Mock private ApiFuture<WriteResult> writeResultFuture;
+    @Mock private PushSubscriptionRepository pushSubscriptionRepository;
 
     private PedidoService pedidoService;
 
     @BeforeEach
     void setUp() {
-        pedidoService = new PedidoService(db, productoService, notificacionService);
+        pedidoService = new PedidoService(pedidoRepository, productoService,
+                notificacionService, pushSubscriptionRepository);
+    }
+
+    private CrearPedidoRequest requestCon(String productoId, int cantidad) {
+        LineaPedidoRequest linea = new LineaPedidoRequest();
+        linea.setProductoId(productoId);
+        linea.setCantidad(cantidad);
+
+        CrearPedidoRequest request = new CrearPedidoRequest();
+        request.setProductos(List.of(linea));
+        request.setNombreCliente("Test");
+        request.setMetodoPago("EFECTIVO");
+        return request;
     }
 
     @Test
-    void realizarPedidoConProductoInexistenteLanzaExcepcion() throws Exception {
+    void realizarPedidoConProductoInexistenteLanzaExcepcion() {
         when(productoService.obtenerPorId("prod-inexistente")).thenReturn(null);
 
-        CrearPedidoRequest request = new CrearPedidoRequest();
-        LineaPedidoRequest linea = new LineaPedidoRequest();
-        linea.setProductoId("prod-inexistente");
-        linea.setCantidad(1);
-        request.setProductos(List.of(linea));
-        request.setNombreCliente("Test");
-        request.setMetodoPago("EFECTIVO");
-
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> pedidoService.guardarNuevoPedido(request, "uid-test"));
+                () -> pedidoService.guardarNuevoPedido(requestCon("prod-inexistente", 1), "uid-test"));
         assertTrue(ex.getMessage().contains("Producto no encontrado"));
+        verify(pedidoRepository, never()).save(any());
     }
 
     @Test
-    void realizarPedidoConProductoNoDisponibleLanzaExcepcion() throws Exception {
-        Producto productoNoDisponible = new Producto();
-        productoNoDisponible.setId("prod-1");
-        productoNoDisponible.setNombre("Burger especial");
-        productoNoDisponible.setPrecio(8.50);
-        productoNoDisponible.setDisponible(false);
-
-        when(productoService.obtenerPorId("prod-1")).thenReturn(productoNoDisponible);
-
-        CrearPedidoRequest request = new CrearPedidoRequest();
-        LineaPedidoRequest linea = new LineaPedidoRequest();
-        linea.setProductoId("prod-1");
-        linea.setCantidad(1);
-        request.setProductos(List.of(linea));
-        request.setNombreCliente("Test");
-        request.setMetodoPago("EFECTIVO");
+    void realizarPedidoConProductoNoDisponibleLanzaExcepcion() {
+        Producto producto = new Producto();
+        producto.setId("prod-1");
+        producto.setNombre("Burger especial");
+        producto.setPrecio(8.50);
+        producto.setDisponible(false);
+        when(productoService.obtenerPorId("prod-1")).thenReturn(producto);
 
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> pedidoService.guardarNuevoPedido(request, "uid-test"));
+                () -> pedidoService.guardarNuevoPedido(requestCon("prod-1", 1), "uid-test"));
         assertTrue(ex.getMessage().contains("no está disponible"));
+        verify(pedidoRepository, never()).save(any());
     }
 
     @Test
@@ -83,30 +78,23 @@ class PedidoServiceTest {
     }
 
     @Test
-    void descuentoNoPuedeSuperar() throws Exception {
+    void descuentoNoPuedeSuperarElSubtotal() {
         Producto producto = new Producto();
         producto.setId("prod-1");
         producto.setNombre("Burger");
         producto.setPrecio(5.0);
         producto.setDisponible(true);
-
         when(productoService.obtenerPorId("prod-1")).thenReturn(producto);
-        when(db.collection("pedidos")).thenReturn(coleccionPedidos);
-        when(coleccionPedidos.document(anyString())).thenReturn(docRef);
-        when(docRef.set(any())).thenReturn(writeResultFuture);
-        when(writeResultFuture.get()).thenReturn(mock(WriteResult.class));
 
-        CrearPedidoRequest request = new CrearPedidoRequest();
-        LineaPedidoRequest linea = new LineaPedidoRequest();
-        linea.setProductoId("prod-1");
-        linea.setCantidad(1);
-        request.setProductos(List.of(linea));
-        request.setNombreCliente("Test");
-        request.setMetodoPago("EFECTIVO");
-        request.setDescuento(999.0); // descuento mayor que el subtotal
+        CrearPedidoRequest request = requestCon("prod-1", 1); // subtotal = 5.0
+        request.setDescuento(100.0);                          // descuento desproporcionado
 
-        String id = pedidoService.guardarNuevoPedido(request, "uid-test");
-        assertNotNull(id);
-        // El total no puede ser negativo (el descuento se capa al subtotal)
+        pedidoService.guardarNuevoPedido(request, "uid-test");
+
+        org.mockito.ArgumentCaptor<com.illouncampero.Backend.model.Pedido> captor =
+                org.mockito.ArgumentCaptor.forClass(com.illouncampero.Backend.model.Pedido.class);
+        verify(pedidoRepository).save(captor.capture());
+        // El total nunca puede ser negativo: el descuento se limita al subtotal.
+        assertEquals(0.0, captor.getValue().getTotal(), 0.001);
     }
 }

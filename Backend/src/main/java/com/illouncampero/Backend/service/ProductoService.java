@@ -1,56 +1,41 @@
 package com.illouncampero.Backend.service;
 
-import com.google.cloud.firestore.DocumentSnapshot;
-import com.google.cloud.firestore.Firestore;
 import com.illouncampero.Backend.model.Producto;
+import com.illouncampero.Backend.repository.ProductoRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 public class ProductoService {
 
-    private final Firestore db;
+    private final ProductoRepository productoRepository;
 
-    public ProductoService(Firestore db) {
-        this.db = db;
+    public ProductoService(ProductoRepository productoRepository) {
+        this.productoRepository = productoRepository;
     }
 
-    public Producto obtenerPorId(String id) throws Exception {
-        DocumentSnapshot doc = db.collection("productos").document(id).get().get();
-        if (doc.exists()) {
-            Producto p = doc.toObject(Producto.class);
-            p.setId(doc.getId());
-            return p;
-        }
-        return null;
+    public Producto obtenerPorId(String id) {
+        return productoRepository.findById(id).orElse(null);
     }
 
-    public List<Producto> obtenerTodos() throws Exception {
-        return db.collection("productos").get().get().getDocuments()
-                .stream()
-                .map(doc -> {
-                    Producto p = doc.toObject(Producto.class);
-                    p.setId(doc.getId());
-                    return p;
-                }).collect(Collectors.toList());
+    public List<Producto> obtenerTodos() {
+        return productoRepository.findAll();
     }
 
-    public String guardarProducto(Producto producto) throws Exception {
+    public String guardarProducto(Producto producto) {
         if (producto.getId() == null || producto.getId().isEmpty()) {
             producto.setId(UUID.randomUUID().toString());
         }
-        db.collection("productos").document(producto.getId()).set(producto).get();
+        productoRepository.save(producto);
         return "Producto guardado con éxito";
     }
 
-    public String eliminarProducto(String id) throws Exception {
+    public String eliminarProducto(String id) {
         String idLimpio = id.trim();
-        DocumentSnapshot doc = db.collection("productos").document(idLimpio).get().get();
-        if (doc.exists()) {
-            db.collection("productos").document(idLimpio).delete().get();
+        if (productoRepository.existsById(idLimpio)) {
+            productoRepository.deleteById(idLimpio);
             return "Producto eliminado con éxito";
         }
         return "El producto no existe o ya fue eliminado.";

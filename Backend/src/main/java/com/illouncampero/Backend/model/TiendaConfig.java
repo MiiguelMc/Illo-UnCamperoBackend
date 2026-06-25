@@ -7,12 +7,9 @@ import lombok.Data;
 
 @Data
 @Entity
-@Table(name = "cupones")
-public class Cupon {
+@Table(name = "tienda_config")
+public class TiendaConfig {
     @Id
-    private String id;
-    private String codigo;
-    private double descuento;
-    private String descripcion;
-    private boolean activo;
+    private String id;       // siempre "tienda"
+    private boolean abierta;
 }
