@@ -1,5 +1,7 @@
 package com.illouncampero.Backend.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -13,6 +15,8 @@ import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<Map<String, String>> handleResponseStatus(ResponseStatusException e) {
@@ -45,7 +49,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleGeneric(Exception e) {
+        log.error("Error no controlado", e);
+        // DEBUG TEMPORAL: exponer la causa para diagnosticar el 500 de Firestore. Revertir despues.
         return ResponseEntity.internalServerError()
-                .body(Map.of("error", "Error interno del servidor"));
+                .body(Map.of(
+                        "error", "Error interno del servidor",
+                        "debug", e.getClass().getName() + ": " + e.getMessage()
+                ));
     }
 }
