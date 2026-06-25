@@ -75,11 +75,23 @@
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
-        <!-- Web Push (VAPID) en sustitucion de FCM (incluye BouncyCastle transitivo) -->
+        <!-- Web Push (VAPID) en sustitucion de FCM -->
         <dependency>
             <groupId>nl.martijndwars</groupId>
             <artifactId>web-push</artifactId>
             <version>5.1.1</version>
+        </dependency>
+        <!-- BouncyCastle: web-push lo necesita (firma VAPID) y NotificacionService usa
+             BouncyCastleProvider. Versiones que espera web-push 5.1.1 (jdk15on 1.70). -->
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk15on</artifactId>
+            <version>1.70</version>
+        </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcpkix-jdk15on</artifactId>
+            <version>1.70</version>
         </dependency>
 
         <dependency>
