@@ -88,25 +88,16 @@ CLOUDINARY_API_SECRET=<si lo usas>
 ```
 Ya **no** hace falta `FIREBASE_JSON`. Tras guardar, Render redeploya y compila con Docker.
 
-## Paso 7 — Migrar los datos de Firestore
+## Paso 7 — Datos iniciales
 
-```bash
-cd Backend/supabase
-npm install
-# Variables (usa la cadena de conexión Session pooler en formato URI, no JDBC):
-export FIREBASE_JSON="$(cat ruta/al/serviceAccountKey.json)"
-export SUPABASE_DB_URL="postgresql://postgres.<ref>:<password>@aws-0-eu-west-1.pooler.supabase.com:5432/postgres"
-export SUPABASE_URL="https://<ref>.supabase.co"
-export SUPABASE_SERVICE_ROLE_KEY="<service_role>"
-export SEND_RECOVERY=true   # opcional: envía email de "restablecer contraseña" a cada usuario
-node migrate-firestore.mjs
-```
-Migra productos, cupones, pedidos (con sus líneas), reseñas, config y crea las cuentas
-de usuario en Supabase Auth (remapeando los IDs). **Las contraseñas no se migran**
-(Firebase usa un hash propio): cada usuario fijará una nueva con "He olvidado mi contraseña".
+La base de datos ya está poblada en Supabase (carta de productos, cupones y datos de
+demostración). Si partes de un proyecto Supabase vacío: ejecuta el `schema.sql` del Paso 2
+y carga los productos desde el **panel de administración** (rol ADMIN) o con un `INSERT`
+en el SQL Editor.
 
-> Si no quieres migrar y prefieres empezar limpio, simplemente no ejecutes el script:
-> crea productos desde el panel de admin y un usuario nuevo.
+> Los datos provenían originalmente de Firestore; la migración se hizo una sola vez con
+> scripts puntuales que ya se han retirado del repo al completarse. Las contraseñas de los
+> usuarios **no se migran**: cada uno fija una nueva con "He olvidado mi contraseña".
 
 ## Paso 8 — Marcar tu usuario ADMIN
 

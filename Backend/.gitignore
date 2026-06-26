@@ -1,6 +1,3 @@
 target/
-ServiceAccountKey.json
-**/ServiceAccountKey.json
 .classpath
 .project
-src/main/resources/serviceAccountKey.json

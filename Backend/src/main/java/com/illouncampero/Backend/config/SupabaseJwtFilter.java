@@ -24,7 +24,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Valida el token de Supabase Auth contra el endpoint /auth/v1/user.
- * Sustituye a FirebaseFilter.
  *
  * Se valida en remoto (en vez de verificar la firma del JWT en local) para no
  * depender del algoritmo de firma del proyecto: Supabase puede firmar con HS256

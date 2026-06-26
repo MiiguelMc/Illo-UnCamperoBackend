@@ -1,7 +1,7 @@
 -- =====================================================================
 -- Illo Un Campero — Esquema Postgres para Supabase
--- Sustituye a las colecciones de Firestore:
---   usuarios, productos, pedidos (+ lineas), cupones, resenas, config/tienda
+-- Tablas del dominio:
+--   usuarios, productos, pedidos (+ lineas), cupones, resenas, tienda_config
 --
 -- Nombres de columna en snake_case para que casen con la estrategia
 -- de nombres por defecto de Hibernate (CamelCaseToUnderscoresNamingStrategy):
@@ -33,7 +33,7 @@ create table if not exists public.usuarios (
 );
 
 -- ---------------------------------------------------------------------
--- push_subscriptions  (sustituye al fcm_token; Web Push / VAPID)
+-- push_subscriptions  (suscripciones de Web Push / VAPID)
 -- Un usuario puede tener varios dispositivos -> tabla aparte.
 -- ---------------------------------------------------------------------
 create table if not exists public.push_subscriptions (
@@ -97,7 +97,7 @@ create index if not exists idx_pedidos_estado  on public.pedidos(estado);
 create index if not exists idx_pedidos_fecha   on public.pedidos(fecha);
 
 -- ---------------------------------------------------------------------
--- linea_pedido  (era la lista embebida productos[] del Pedido en Firestore)
+-- linea_pedido  (lineas de cada pedido; un producto por fila)
 -- ---------------------------------------------------------------------
 create table if not exists public.linea_pedido (
     id             bigint generated always as identity primary key,
@@ -124,7 +124,7 @@ create table if not exists public.resenas (
 create index if not exists idx_resenas_fecha on public.resenas(fecha);
 
 -- ---------------------------------------------------------------------
--- tienda_config  (era config/tienda en Firestore, una sola fila)
+-- tienda_config  (configuracion global de la tienda; una sola fila)
 -- ---------------------------------------------------------------------
 create table if not exists public.tienda_config (
     id       text primary key default 'tienda',

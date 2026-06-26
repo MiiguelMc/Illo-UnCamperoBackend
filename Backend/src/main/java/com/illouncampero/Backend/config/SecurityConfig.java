@@ -2,6 +2,7 @@ package com.illouncampero.Backend.config;
 
 import com.illouncampero.Backend.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.config.Customizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -59,6 +60,15 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .headers(headers -> headers
+                // X-Frame-Options: DENY (anti-clickjacking)
+                .frameOptions(frame -> frame.deny())
+                // X-Content-Type-Options: nosniff
+                .contentTypeOptions(Customizer.withDefaults())
+                // Strict-Transport-Security (solo se emite sobre HTTPS; ver forward-headers-strategy)
+                .httpStrictTransportSecurity(hsts -> hsts
+                    .includeSubDomains(true)
+                    .maxAgeInSeconds(31_536_000)   // 1 año
+                )
                 .referrerPolicy(ref -> ref
                     .policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
                 )
