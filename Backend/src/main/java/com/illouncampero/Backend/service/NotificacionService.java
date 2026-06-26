@@ -17,7 +17,7 @@ import java.security.Security;
 import java.util.Map;
 
 /**
- * Envio de notificaciones mediante Web Push (VAPID), sin Firebase/FCM.
+ * Envio de notificaciones mediante Web Push (VAPID).
  */
 @Service
 public class NotificacionService {

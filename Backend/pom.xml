@@ -75,7 +75,7 @@
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
-        <!-- Web Push (VAPID) en sustitucion de FCM -->
+        <!-- Web Push (VAPID) para las notificaciones de pedido -->
         <dependency>
             <groupId>nl.martijndwars</groupId>
             <artifactId>web-push</artifactId>

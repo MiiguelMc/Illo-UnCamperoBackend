@@ -12,7 +12,7 @@ import java.net.http.HttpResponse;
 
 /**
  * Operaciones de administracion contra Supabase Auth (GoTrue) usando la
- * service_role key. Sustituye a FirebaseAuth.getInstance().deleteUser(uid).
+ * service_role key (p. ej. eliminar un usuario por su uid).
  */
 @Service
 public class SupabaseAdminService {
